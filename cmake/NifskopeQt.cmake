@@ -31,7 +31,7 @@ else()
 	endif()
 	set(NIFSKOPE_QT_CORE_COMPONENTS Core Gui Widgets Xml)
 	set(NIFSKOPE_QT_APP_COMPONENTS OpenGL Network)
-	set(_nifskope_cxx_standard_default 14)
+	set(_nifskope_cxx_standard_default 20)
 	set(_nifskope_deprecated_before_default 0x050300)
 endif()
 

@@ -14,6 +14,28 @@
 set(CMAKE_CXX_STANDARD ${NIFSKOPE_CXX_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# C++20 needs a compiler that has it. CMake would pass an older one -std=c++2a or /std:c++latest, a state nobody tests, so
+# stop here with the oldest versions that BUILDING.md lists (same floor in NifSkope_settings.pri). cl 19.29.30129 is
+# Visual Studio 2019 16.11, the first with /std:c++20
+if(NIFSKOPE_CXX_STANDARD GREATER_EQUAL 20)
+	set(_nifskope_cxx20_min "")
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		set(_nifskope_cxx20_min 10)
+	elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		set(_nifskope_cxx20_min 10)
+	elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+		set(_nifskope_cxx20_min 12)
+	elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+		set(_nifskope_cxx20_min 19.29.30129)
+	endif()
+	if(_nifskope_cxx20_min AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS _nifskope_cxx20_min)
+		message(FATAL_ERROR
+			"${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} is too old for C++20: NifSkope needs GCC 10, Clang 10, "
+			"Apple clang 12 (Xcode 12) or MSVC 2019 16.11 or later. Use a newer compiler, or -DNIFSKOPE_CXX_STANDARD=17.")
+	endif()
+	unset(_nifskope_cxx20_min)
+endif()
+
 # qmake never defines NDEBUG, CMake's default Release flags do. With it assert() disappears from lib/NvTriStrip (11
 # sites, one of them assert(0)) and from the gli code in src/gl/gltex*.cpp. Take it out of every configuration that
 # carries it so the build behaves like the qmake one; NIFSKOPE_KEEP_NDEBUG=ON restores the CMake default. Must run

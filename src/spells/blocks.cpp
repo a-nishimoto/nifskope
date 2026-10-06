@@ -1614,7 +1614,7 @@ class spMoveBlockUp final : public Spell
 public:
 	QString name() const override final { return Spell::tr( "Move Up" ); }
 	QString page() const override final { return Spell::tr( "Block" ); }
-	QKeySequence hotkey() const override final { return { Qt::CTRL + Qt::Key_Up }; }
+	QKeySequence hotkey() const override final { return { int( Qt::CTRL ) + Qt::Key_Up }; }
 
 	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
 	{
@@ -1637,7 +1637,7 @@ class spMoveBlockDown final : public Spell
 public:
 	QString name() const override final { return Spell::tr( "Move Down" ); }
 	QString page() const override final { return Spell::tr( "Block" ); }
-	QKeySequence hotkey() const override final { return { Qt::CTRL + Qt::Key_Down }; }
+	QKeySequence hotkey() const override final { return { int( Qt::CTRL ) + Qt::Key_Down }; }
 
 	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
 	{

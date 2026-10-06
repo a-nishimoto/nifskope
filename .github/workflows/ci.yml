@@ -65,7 +65,7 @@ jobs:
           # the Qt 5.15.2 binaries date from 2020. Linux and macOS are what the
           # -latest labels point to today. Windows is deliberately not:
           # windows-latest and windows-2025 are the Visual Studio 2026 image,
-          # and Qt 5.15.2's msvc2019 build with /std:c++latest has not been
+          # and Qt 5.15.2's msvc2019 build with /std:c++20 has not been
           # tried with that compiler; windows-2022 has Visual Studio 2022 (see
           # the table in the README of github.com/actions/runner-images).
           #

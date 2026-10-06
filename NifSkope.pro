@@ -389,7 +389,7 @@ win32 {
 
 # MSVC
 #  Both Visual Studio and Qt Creator
-#  Required: msvc2013 or higher
+#  Required: msvc2019 16.11 or higher (C++20, see NifSkope_settings.pri)
 *msvc* {
 
 	# Grab _MSC_VER from the mkspecs that Qt was compiled with
@@ -400,7 +400,7 @@ win32 {
 
 	# Reject unsupported MSVC versions
 	!isEmpty(_MSC_VER):lessThan(_MSC_VER, 1900) {
-		error("NifSkope only supports MSVC 2015 or later. If this is too prohibitive you may use Qt Creator with MinGW.")
+		error("NifSkope only supports MSVC 2015 or later (2019 16.11 or later for C++20). If this is too prohibitive you may use Qt Creator with MinGW.")
 	}
 
 	# So VCProj Filters do not flatten headers/source
@@ -413,9 +413,9 @@ win32 {
 	#  Multithreaded compiling for Visual Studio
 	QMAKE_CXXFLAGS += -MP
 
-	# Standards conformance to match GCC and clang
+	# Standards conformance to match GCC and clang. The language standard flag comes from CONFIG (NifSkope_settings.pri)
 	!isEmpty(_MSC_VER):greaterThan(_MSC_VER, 1900) {
-		QMAKE_CXXFLAGS += /permissive- /std:c++latest
+		QMAKE_CXXFLAGS += /permissive-
 	}
 
 	# LINKER FLAGS
@@ -429,7 +429,7 @@ win32 {
 
 
 # MinGW, GCC
-#  Recommended: GCC 4.8.1+
+#  Recommended: GCC 10+ (C++20)
 *-g++ {
 
 	# COMPILER FLAGS
