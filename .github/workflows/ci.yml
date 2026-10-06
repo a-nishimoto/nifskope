@@ -47,7 +47,7 @@ concurrency:
 
 env:
   # 5.15.2 is the last Qt 5.15 that jurplel/install-qt-action can fetch from
-  # download.qt.io; NifSkope.pro requires Qt 5.7 or higher
+  # download.qt.io; NifSkope requires Qt 5.15 or higher
   QT_VERSION: '5.15.2'
 
 jobs:

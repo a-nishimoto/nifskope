@@ -6,7 +6,8 @@
 #   nifskope_warnings         -Wall -Wextra, linked PRIVATE by first-party targets only. Vendored libraries
 #                             never get it: they are quiet without it and their warnings are not ours to fix.
 
-# qmake: CONFIG += c++14 -> -std=gnu++1y. GNU extensions stay on (CMAKE_CXX_EXTENSIONS defaults to ON).
+# NIFSKOPE_CXX_STANDARD (cmake/NifskopeQt.cmake) is the C++ standard; qmake: CONFIG += c++14 -> -std=gnu++1y, c++1z and
+# c++2a for 17 and 20 (NifSkope_settings.pri). GNU extensions stay on (CMAKE_CXX_EXTENSIONS defaults to ON).
 # Set as variables, not with cxx_std_14: a feature requirement adds no flag when the compiler's default
 # is already newer (Apple clang 21 and GCC 11+ default to gnu++17).  The C standard is left alone on purpose:
 # lib/lz4frame.c and the xxhash.c it includes typedef the same names, which only C11 and later accept.

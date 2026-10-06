@@ -7,14 +7,9 @@ TARGET   = NifSkope
 
 QT += xml opengl network widgets
 
-# Require Qt 5.7 or higher
-contains(QT_VERSION, ^5\\.[0-6]\\..*) {
-	message("Cannot build NifSkope with Qt version $${QT_VERSION}")
-	error("Minimum required version is Qt 5.7")
-}
-
-# C++11/14 Support
-CONFIG += c++14
+# Minimum Qt version (5.15), C++ standard and Qt deprecation level
+#	NIFSKOPE_CXX_STANDARD, NIFSKOPE_QT_DEPRECATED_BEFORE: see NifSkope_settings.pri
+include(NifSkope_settings.pri)
 
 # Dependencies
 CONFIG += nvtristrip qhull zlib lz4 fsengine gli
@@ -42,7 +37,7 @@ CONFIG(debug, debug|release) {
 DEFINES += \
 	QT_NO_CAST_FROM_BYTEARRAY \ # QByteArray deprecations
 	QT_NO_URL_CAST_FROM_STRING \ # QUrl deprecations
-	QT_DISABLE_DEPRECATED_BEFORE=0x050300 #\ # Disable all functions deprecated as of 5.3
+	QT_DISABLE_DEPRECATED_BEFORE=$$NIFSKOPE_QT_DEPRECATED_BEFORE #\ # Disable all functions deprecated before this Qt version
 
 	# Useful for tracking down strings not using
 	#	QObject::tr() for translations.
@@ -444,8 +439,8 @@ win32 {
 	QMAKE_CXXFLAGS_DEBUG *= -Og -g3
 	QMAKE_CXXFLAGS_RELEASE *= -O3 -mfpmath=sse
 
-	# C++11 Support
-	QMAKE_CXXFLAGS_RELEASE *= -std=c++14
+	# C++ standard
+	QMAKE_CXXFLAGS_RELEASE *= -std=c++$${NIFSKOPE_CXX_STANDARD}
 
 	#  Extension flags
 	QMAKE_CXXFLAGS_RELEASE *= -msse2 -msse

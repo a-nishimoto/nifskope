@@ -15,17 +15,21 @@ TARGET   = nifskope_tests
 
 QT += xml widgets testlib
 
-CONFIG += c++14 testcase console no_testcase_installs
+CONFIG += testcase console no_testcase_installs
 CONFIG -= app_bundle
 
 # Source tree root; override with NIFSKOPE_ROOT=<dir> on the qmake command line
 isEmpty(NIFSKOPE_ROOT): NIFSKOPE_ROOT = $$clean_path($$PWD/..)
 
+# Minimum Qt version, C++ standard and Qt deprecation level, the same as NifSkope.pro
+#	NIFSKOPE_CXX_STANDARD, NIFSKOPE_QT_DEPRECATED_BEFORE: see NifSkope_settings.pri
+include($${NIFSKOPE_ROOT}/NifSkope_settings.pri)
+
 # Same defines as NifSkope.pro so the shared sources compile identically
 DEFINES += \
 	QT_NO_CAST_FROM_BYTEARRAY \
 	QT_NO_URL_CAST_FROM_STRING \
-	QT_DISABLE_DEPRECATED_BEFORE=0x050300
+	QT_DISABLE_DEPRECATED_BEFORE=$$NIFSKOPE_QT_DEPRECATED_BEFORE
 
 # Where the tests find nif.xml / kfm.xml (the build/docsys submodule)
 DEFINES += NIFSKOPE_SOURCE_DIR=\\\"$${NIFSKOPE_ROOT}\\\"
