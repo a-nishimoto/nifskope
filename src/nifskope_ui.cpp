@@ -800,7 +800,7 @@ void NifSkope::onLoadComplete( bool success, QString & fname )
 
 		header->setRootIndex( nif->getHeader() );
 		// Refresh the header rows
-		header->updateConditions( nif->getHeader().child( 0, 0 ), nif->getHeader().child( 20, 0 ) );
+		header->updateConditions( childIndex( nif->getHeader(), 0, 0 ), childIndex( nif->getHeader(), 20, 0 ) );
 
 		ogl->setOrientation( GLView::ViewFront );
 

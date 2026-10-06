@@ -178,7 +178,7 @@ public:
 			subshapeVerts.resize( nSubShapes );
 
 			for ( int t = 0; t < nSubShapes; t++ ) {
-				subshapeVerts[t] = nif->get<int>( ihkSubShapes.child( t, 0 ), "Num Vertices" );
+				subshapeVerts[t] = nif->get<int>( childIndex( ihkSubShapes, t, 0 ), "Num Vertices" );
 			}
 		} else if ( nif->checkVersion( 0x14020007, 0x14020007 ) ) {
 			int nSubShapes = nif->get<int>( ihkPackedNiTriStripsData, "Num Sub Shapes" );
@@ -186,7 +186,7 @@ public:
 			subshapeVerts.resize( nSubShapes );
 
 			for ( int t = 0; t < nSubShapes; t++ ) {
-				subshapeVerts[t] = nif->get<int>( ihkSubShapes.child( t, 0 ), "Num Vertices" );
+				subshapeVerts[t] = nif->get<int>( childIndex( ihkSubShapes, t, 0 ), "Num Vertices" );
 			}
 		}
 
@@ -198,7 +198,7 @@ public:
 		triangles.resize( nTriangles );
 
 		for ( int t = 0; t < nTriangles; t++ ) {
-			triangles[t] = nif->get<Triangle>( iTriangles.child( t, 0 ), "Triangle" );
+			triangles[t] = nif->get<Triangle>( childIndex( iTriangles, t, 0 ), "Triangle" );
 		}
 
 		if ( verts.isEmpty() || triangles.isEmpty() ) {
@@ -222,7 +222,7 @@ public:
 			nif->set<float>( iCodeScale, scale );
 
 			QModelIndex iCodeSize = nif->getIndex( ibhkMoppBvTreeShape, "MOPP Data Size" );
-			QModelIndex iCode = nif->getIndex( ibhkMoppBvTreeShape, "MOPP Data" ).child( 0, 0 );
+			QModelIndex iCode = childIndex( nif->getIndex( ibhkMoppBvTreeShape, "MOPP Data" ), 0, 0 );
 
 			if ( iCodeSize.isValid() && iCode.isValid() ) {
 				nif->set<int>( iCodeSize, moppcode.size() );

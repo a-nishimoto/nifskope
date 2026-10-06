@@ -261,7 +261,7 @@ void NifTreeView::pasteArray()
 	ChangeValueCommand::createTransaction();
 	nif->setState( BaseModel::Processing );
 	for ( int i = 0; i < cnt && i < valueClipboard->getValues().size(); i++ ) {
-		auto iDest = root.child( i, NifModel::ValueCol );
+		auto iDest = childIndex( root, i, NifModel::ValueCol );
 		auto srcValue = valueClipboard->getValues().at( iDest.row() );
 
 		pasteTo( iDest, srcValue );
@@ -269,7 +269,7 @@ void NifTreeView::pasteArray()
 	nif->restoreState();
 
 	if ( cnt > 0 )
-		emit nif->dataChanged( root.child( 0, NifModel::ValueCol ), root.child( cnt - 1, NifModel::ValueCol ) );
+		emit nif->dataChanged( childIndex( root, 0, NifModel::ValueCol ), childIndex( root, cnt - 1, NifModel::ValueCol ) );
 }
 
 void NifTreeView::drawBranches( QPainter * painter, const QRect & rect, const QModelIndex & index ) const
@@ -398,7 +398,7 @@ void NifTreeView::keyPressEvent( QKeyEvent * e )
 				nif->setData( newValue, v );
 
 				// Change the selected row
-				selectionModel()->select( parent.child( row, 0 ), QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows );
+				selectionModel()->select( childIndex( parent, row, 0 ), QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows );
 
 				// Add row swap to undo
 				ChangeValueCommand::createTransaction();
@@ -485,7 +485,7 @@ void NifTreeView::currentChanged( const QModelIndex & current, const QModelIndex
 		if ( mdl->inherits( current, "NiTransformInterpolator" ) 
 			 || mdl->inherits( current, "NiBSplineTransformInterpolator" ) ) {
 			// Auto-Expand NiQuatTransform
-			autoExpand( current.child( 0, 0 ) );
+			autoExpand( childIndex( current, 0, 0 ) );
 		} else if ( mdl->inherits( current, "NiNode" ) ) {
 			// Auto-Expand Children array
 			auto iChildren = mdl->getIndex( current, "Children" );
@@ -493,11 +493,11 @@ void NifTreeView::currentChanged( const QModelIndex & current, const QModelIndex
 				autoExpand( iChildren );
 		} else if ( mdl->inherits( current, "NiSkinPartition" ) ) {
 			// Auto-Expand skin partitions array
-			autoExpand( current.child( 1, 0 ) );
-		} else if ( mdl->getValue( current.child( cnt - 1, 0 ) ).type() == NifValue::tNone
-					&& mdl->rowCount( current.child( cnt - 1, 0 ) ) < ARRAY_LIMIT ) {
+			autoExpand( childIndex( current, 1, 0 ) );
+		} else if ( mdl->getValue( childIndex( current, cnt - 1, 0 ) ).type() == NifValue::tNone
+					&& mdl->rowCount( childIndex( current, cnt - 1, 0 ) ) < ARRAY_LIMIT ) {
 			// Auto-Expand final arrays/compounds
-			autoExpand( current.child( cnt - 1, 0 ) );
+			autoExpand( childIndex( current, cnt - 1, 0 ) );
 		}
 	}
 

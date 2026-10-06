@@ -2105,6 +2105,37 @@ private slots:
 		QCOMPARE( tgt->get<QString>( tgt->getBlock( 0 ), "Name" ), QString( "Alpha" ) );
 		QCOMPARE( tgt->get<QString>( tgt->getBlock( 1 ), "Name" ), QString( "Beta" ) );
 	}
+
+	//! childIndex() does what the deprecated QModelIndex::child() did: the child of a valid index is the model's own index( row, column,
+	//! parent ), and an invalid index (it has no model) has no child. Spelled as index( row, column, QModelIndex() ), the model would
+	//! answer with a top level item instead.
+	void childIndex_replacesQModelIndexChild()
+	{
+		auto a = make( "20.0.0.5", 11, 11 );
+		QModelIndex node = a->insertNiBlock( "NiNode" );
+		QVERIFY( node.isValid() );
+		QVERIFY( a->set<int>( node, "Num Children", 2 ) );
+		QVERIFY( a->updateArray( node, "Children" ) );
+		QModelIndex children = a->getIndex( node, "Children" );
+		QVERIFY( children.isValid() );
+		QCOMPARE( a->rowCount( children ), 2 );
+
+		QModelIndex second = childIndex( children, 1, 0 );
+		QVERIFY( second.isValid() );
+		QCOMPARE( second, a->index( 1, 0, children ) );
+		QCOMPARE( second.parent(), children );
+		QCOMPARE( childIndex( children, 0, NifModel::ValueCol ), a->index( 0, NifModel::ValueCol, children ) );
+		QVERIFY( !childIndex( children, 2, 0 ).isValid() );	// past the last row
+
+		// a persistent index converts to the index it holds; a null one has no model
+		QPersistentModelIndex persistent( children );
+		QCOMPARE( childIndex( persistent, 1, 0 ), second );
+		QVERIFY( !childIndex( QPersistentModelIndex(), 0, 0 ).isValid() );
+
+		// the root index has no model and no child, whereas the model's own index() maps it to the top level
+		QVERIFY( a->index( 0, 0, QModelIndex() ).isValid() );
+		QVERIFY( !childIndex( QModelIndex(), 0, 0 ).isValid() );
+	}
 };
 
 REGISTER_TEST( tst_NifModel )

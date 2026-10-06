@@ -414,7 +414,7 @@ void NifModel::updateHeader()
 
 			if ( nstrings > 0 && iArray.isValid() ) {
 				for ( int row = 0; row < nstrings; ++row ) {
-					int len = get<QString>( iArray.child( row, 0 ) ).length();
+					int len = get<QString>( childIndex( iArray, row, 0 ) ).length();
 
 					if ( len > maxlen )
 						maxlen = len;
@@ -2906,7 +2906,7 @@ bool NifModel::assignString( NifItem * item, const QString & string, bool replac
 
 		// Simply replace the string
 		if ( replace && idx >= 0 && idx < nstrings ) {
-			return BaseModel::set<QString>( iArray.child( idx, 0 ), string );
+			return BaseModel::set<QString>( childIndex( iArray, idx, 0 ), string );
 		}
 
 		QVector<QString> stringVector = getArray<QString>( iArray );
@@ -2921,7 +2921,7 @@ bool NifModel::assignString( NifItem * item, const QString & string, bool replac
 		// Append string to end of list
 		set<uint>( header, "Num Strings", nstrings + 1 );
 		updateArray( header, "Strings" );
-		BaseModel::set<QString>( iArray.child( nstrings, 0 ), string );
+		BaseModel::set<QString>( childIndex( iArray, nstrings, 0 ), string );
 
 		v.changeType( NifValue::tStringIndex );
 		return set<int>( pItem, nstrings );

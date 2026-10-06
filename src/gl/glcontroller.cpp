@@ -296,14 +296,14 @@ bool Controller::timeIndex( float time, const NifModel * nif, const QModelIndex 
 	int count;
 
 	if ( array.isValid() && ( count = nif->rowCount( array ) ) > 0 ) {
-		if ( time <= nif->get<float>( array.child( 0, 0 ), "Time" ) ) {
+		if ( time <= nif->get<float>( childIndex( array, 0, 0 ), "Time" ) ) {
 			i = j = 0;
 			x = 0.0;
 
 			return true;
 		}
 
-		if ( time >= nif->get<float>( array.child( count - 1, 0 ), "Time" ) ) {
+		if ( time >= nif->get<float>( childIndex( array, count - 1, 0 ), "Time" ) ) {
 			i = j = count - 1;
 			x = 0.0;
 
@@ -313,13 +313,13 @@ bool Controller::timeIndex( float time, const NifModel * nif, const QModelIndex 
 		if ( i < 0 || i >= count )
 			i = 0;
 
-		float tI = nif->get<float>( array.child( i, 0 ), "Time" );
+		float tI = nif->get<float>( childIndex( array, i, 0 ), "Time" );
 
 		if ( time > tI ) {
 			j = i + 1;
 			float tJ;
 
-			while ( time >= ( tJ = nif->get<float>( array.child( j, 0 ), "Time" ) ) ) {
+			while ( time >= ( tJ = nif->get<float>( childIndex( array, j, 0 ), "Time" ) ) ) {
 				i  = j++;
 				tI = tJ;
 			}
@@ -331,7 +331,7 @@ bool Controller::timeIndex( float time, const NifModel * nif, const QModelIndex 
 			j = i - 1;
 			float tJ;
 
-			while ( time <= ( tJ = nif->get<float>( array.child( j, 0 ), "Time" ) ) ) {
+			while ( time <= ( tJ = nif->get<float>( childIndex( array, j, 0 ), "Time" ) ) ) {
 				i  = j--;
 				tI = tJ;
 			}
@@ -375,8 +375,8 @@ template <typename T> bool interpolate( T & value, const QModelIndex & array, fl
 		float x;
 
 		if ( Controller::timeIndex( time, nif, frames, last, next, x ) ) {
-			T v1 = nif->get<T>( frames.child( last, 0 ), "Value" );
-			T v2 = nif->get<T>( frames.child( next, 0 ), "Value" );
+			T v1 = nif->get<T>( childIndex( frames, last, 0 ), "Value" );
+			T v2 = nif->get<T>( childIndex( frames, next, 0 ), "Value" );
 
 			switch ( nif->get<int>( array, "Interpolation" ) ) {
 			
@@ -390,9 +390,9 @@ template <typename T> bool interpolate( T & value, const QModelIndex & array, fl
 				*/
 
 				// Tangent 1
-				float t1 = nif->get<float>( frames.child( last, 0 ), "Backward" );
+				float t1 = nif->get<float>( childIndex( frames, last, 0 ), "Backward" );
 				// Tangent 2
-				float t2 = nif->get<float>( frames.child( next, 0 ), "Forward" );
+				float t2 = nif->get<float>( childIndex( frames, next, 0 ), "Forward" );
 
 				float x2 = x * x;
 				float x3 = x2 * x;
@@ -452,7 +452,7 @@ template <> bool Controller::interpolate( bool & value, const QModelIndex & arra
 		QModelIndex frames = nif->getIndex( array, "Keys" );
 
 		if ( timeIndex( time, nif, frames, last, next, x ) ) {
-			value = nif->get<int>( frames.child( last, 0 ), "Value" );
+			value = nif->get<int>( childIndex( frames, last, 0 ), "Value" );
 
 			return true;
 		}
@@ -478,7 +478,7 @@ template <> bool Controller::interpolate( Matrix & value, const QModelIndex & ar
 
 					for ( int s = 0; s < 3 && s < nif->rowCount( subkeys ); s++ ) {
 						r[s] = 0;
-						interpolate( r[s], subkeys.child( s, 0 ), time, last );
+						interpolate( r[s], childIndex( subkeys, s, 0 ), time, last );
 					}
 
 					value = Matrix::euler( 0, 0, r[2] ) * Matrix::euler( 0, r[1], 0 ) * Matrix::euler( r[0], 0, 0 );
@@ -492,8 +492,8 @@ template <> bool Controller::interpolate( Matrix & value, const QModelIndex & ar
 				QModelIndex frames = nif->getIndex( array, "Quaternion Keys" );
 
 				if ( timeIndex( time, nif, frames, last, next, x ) ) {
-					Quat v1 = nif->get<Quat>( frames.child( last, 0 ), "Value" );
-					Quat v2 = nif->get<Quat>( frames.child( next, 0 ), "Value" );
+					Quat v1 = nif->get<Quat>( childIndex( frames, last, 0 ), "Value" );
+					Quat v2 = nif->get<Quat>( childIndex( frames, next, 0 ), "Value" );
 
 					if ( Quat::dotproduct( v1, v2 ) < 0 )
 						v1.negate(); // don't take the long path
@@ -549,7 +549,7 @@ struct qarray
 
 	T operator[]( uint index ) const
 	{
-		return nif_->get<T>( array_.child( index + off_, 0 ) );
+		return nif_->get<T>( childIndex( array_, index + off_, 0 ) );
 	}
 	const NifModel * nif_;
 	const QModelIndex & array_;

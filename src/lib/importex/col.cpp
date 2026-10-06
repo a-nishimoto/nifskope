@@ -770,7 +770,7 @@ void attachNiShape ( const NifModel * nif, QDomElement parentNode, int idx )
 			QModelIndex iUV = nif->getIndex( iProp, "UV Sets" );
 
 			for ( int row = 0; row < uvCount; row++ ) {
-				QVector<Vector2> uvMap = nif->getArray<Vector2>( iUV.child( row, 0 ) );
+				QVector<Vector2> uvMap = nif->getArray<Vector2>( childIndex( iUV, row, 0 ) );
 				mesh.appendChild( uvMapElement( uvMap, idx, row ) );
 
 				if ( uvMap.size() > 0 )
@@ -845,7 +845,7 @@ void attachNiShape ( const NifModel * nif, QDomElement parentNode, int idx )
 				QVector<QVector<quint16> > strips;
 
 				for ( int r = 0; r < nif->rowCount( iPoints ); r++ )
-					strips.append( nif->getArray<quint16>( iPoints.child( r, 0 ) ) );
+					strips.append( nif->getArray<quint16>( childIndex( iPoints, r, 0 ) ) );
 
 				tri = triangulate( strips );
 			} else {

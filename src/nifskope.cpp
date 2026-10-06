@@ -490,7 +490,7 @@ void NifSkope::select( const QModelIndex & index )
 			tree->setCurrentIndex( idx.sibling( idx.row(), 0 ) );
 
 			// Expand BSShaderTextureSet by default
-			//if ( root.child( 1, 0 ).data().toString() == "Textures" )
+			//if ( childIndex( root, 1, 0 ).data().toString() == "Textures" )
 			//	tree->expandAll();
 
 		} else {

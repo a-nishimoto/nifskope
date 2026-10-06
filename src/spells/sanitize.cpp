@@ -52,7 +52,7 @@ public:
 				QList<QPair<qint32, bool> > links;
 
 				for ( int r = 0; r < nif->rowCount( iChildren ); r++ ) {
-					qint32 l = nif->getLink( iChildren.child( r, 0 ) );
+					qint32 l = nif->getLink( childIndex( iChildren, r, 0 ) );
 
 					if ( l >= 0 ) {
 						links.append( QPair<qint32, bool>( l, nif->inherits( nif->getBlock( l ), "NiTriBasedGeom" ) ) );
@@ -62,8 +62,8 @@ public:
 				std::stable_sort( links.begin(), links.end(), compareChildLinks );
 
 				for ( int r = 0; r < links.count(); r++ ) {
-					if ( links[r].first != nif->getLink( iChildren.child( r, 0 ) ) ) {
-						nif->setLink( iChildren.child( r, 0 ), links[r].first );
+					if ( links[r].first != nif->getLink( childIndex( iChildren, r, 0 ) ) ) {
+						nif->setLink( childIndex( iChildren, r, 0 ), links[r].first );
 					}
 				}
 
@@ -293,7 +293,7 @@ public:
 	QModelIndex check( NifModel * nif, const QModelIndex & iParent )
 	{
 		for ( int r = 0; r < nif->rowCount( iParent ); r++ ) {
-			QModelIndex idx = iParent.child( r, 0 );
+			QModelIndex idx = childIndex( iParent, r, 0 );
 			bool child;
 
 			if ( nif->isLink( idx, &child ) ) {
@@ -551,8 +551,8 @@ public:
 			auto numBlocks = nif->rowCount( controlledBlocks );
 
 			for ( int i = 0; i < numBlocks; i++ ) {
-				auto ctrlrType =  nif->getIndex( controlledBlocks.child( i, 0 ), "Controller Type" );
-				auto nodeName = nif->getIndex( controlledBlocks.child( i, 0 ), "Node Name" );
+				auto ctrlrType =  nif->getIndex( childIndex( controlledBlocks, i, 0 ), "Controller Type" );
+				auto nodeName = nif->getIndex( childIndex( controlledBlocks, i, 0 ), "Node Name" );
 
 				auto ctrlrTypeIdx = nif->get<int>( ctrlrType );
 				if ( ctrlrTypeIdx == -1 ) {

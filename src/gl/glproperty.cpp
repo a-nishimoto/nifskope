@@ -1011,7 +1011,7 @@ QString BSShaderLightingProperty::fileName( int id ) const
 		QModelIndex iTextures = nif->getIndex( iTextureSet, "Textures" );
 
 		if ( id >= 0 && id < nTextures )
-			return nif->get<QString>( iTextures.child( id, 0 ) );
+			return nif->get<QString>( childIndex( iTextures, id, 0 ) );
 	} else {
 		// handle niobject name="BSEffectShaderProperty...
 		auto m = static_cast<EffectMaterial *>(material);

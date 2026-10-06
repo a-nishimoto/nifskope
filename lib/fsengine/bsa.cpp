@@ -891,8 +891,9 @@ bool BSAProxyModel::lessThan( const QModelIndex & left, const QModelIndex & righ
 	QString leftString = sourceModel()->data( left ).toString();
 	QString rightString = sourceModel()->data( right ).toString();
 
-	QModelIndex leftChild = left.child( 0, 0 );
-	QModelIndex rightChild = right.child( 0, 0 );
+	// what the deprecated QModelIndex::child( 0, 0 ) did: an invalid index has no model, hence no child
+	QModelIndex leftChild = left.model() ? left.model()->index( 0, 0, left ) : QModelIndex();
+	QModelIndex rightChild = right.model() ? right.model()->index( 0, 0, right ) : QModelIndex();
 
 	if ( !leftChild.isValid() && rightChild.isValid() )
 		return false;

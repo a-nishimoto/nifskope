@@ -166,8 +166,8 @@ public:
 		nif->set<float>( iCVS, "Radius", spnRadius->value() );
 
 		// for arrow detection: [0, 0, -0, 0, 0, -0]
-		nif->set<float>( nif->getIndex( iCVS, "Unknown 6 Floats" ).child( 2, 0 ), -0.0 );
-		nif->set<float>( nif->getIndex( iCVS, "Unknown 6 Floats" ).child( 5, 0 ), -0.0 );
+		nif->set<float>( childIndex( nif->getIndex( iCVS, "Unknown 6 Floats" ), 2, 0 ), -0.0 );
+		nif->set<float>( childIndex( nif->getIndex( iCVS, "Unknown 6 Floats" ), 5, 0 ), -0.0 );
 
 		QModelIndex iParent = nif->getBlock( nif->getParent( nif->getBlockNumber( index ) ) );
 		QModelIndex collisionLink = nif->getIndex( iParent, "Collision Object" );
@@ -246,8 +246,8 @@ public:
 			}
 		}
 
-		QModelIndex iBodyA = nif->getBlock( nif->getLink( nif->getIndex( iConstraint, "Entities" ).child( 0, 0 ) ), "bhkRigidBody" );
-		QModelIndex iBodyB = nif->getBlock( nif->getLink( nif->getIndex( iConstraint, "Entities" ).child( 1, 0 ) ), "bhkRigidBody" );
+		QModelIndex iBodyA = nif->getBlock( nif->getLink( childIndex( nif->getIndex( iConstraint, "Entities" ), 0, 0 ) ), "bhkRigidBody" );
+		QModelIndex iBodyB = nif->getBlock( nif->getLink( childIndex( nif->getIndex( iConstraint, "Entities" ), 1, 0 ) ), "bhkRigidBody" );
 
 		if ( !iBodyA.isValid() || !iBodyB.isValid() ) {
 			Message::warning( nullptr, Spell::tr( "Couldn't find the bodies for this constraint." ) );
@@ -361,8 +361,8 @@ public:
 		if ( !iSpring.isValid() )
 			iSpring = iConstraint;
 
-		QModelIndex iBodyA = nif->getBlock( nif->getLink( nif->getIndex( iConstraint, "Entities" ).child( 0, 0 ) ), "bhkRigidBody" );
-		QModelIndex iBodyB = nif->getBlock( nif->getLink( nif->getIndex( iConstraint, "Entities" ).child( 1, 0 ) ), "bhkRigidBody" );
+		QModelIndex iBodyA = nif->getBlock( nif->getLink( childIndex( nif->getIndex( iConstraint, "Entities" ), 0, 0 ) ), "bhkRigidBody" );
+		QModelIndex iBodyB = nif->getBlock( nif->getLink( childIndex( nif->getIndex( iConstraint, "Entities" ), 1, 0 ) ), "bhkRigidBody" );
 
 		if ( !iBodyA.isValid() || !iBodyB.isValid() ) {
 			Message::warning( nullptr, Spell::tr( "Couldn't find the bodies for this constraint" ) );
@@ -416,7 +416,7 @@ public:
 				QModelIndex iPoints = nif->getIndex( iData, "Points" );
 
 				for ( int x = 0; x < nif->rowCount( iPoints ); x++ ) {
-					tris += triangulate( nif->getArray<quint16>( iPoints.child( x, 0 ) ) );
+					tris += triangulate( nif->getArray<quint16>( childIndex( iPoints, x, 0 ) ) );
 				}
 
 				QMutableVectorIterator<Triangle> it( tris );
@@ -453,9 +453,9 @@ public:
 		nif->set<int>( iPackedShape, "Num Sub Shapes", 1 );
 		QModelIndex iSubShapes = nif->getIndex( iPackedShape, "Sub Shapes" );
 		nif->updateArray( iSubShapes );
-		nif->set<int>( iSubShapes.child( 0, 0 ), "Layer", 1 );
-		nif->set<int>( iSubShapes.child( 0, 0 ), "Num Vertices", vertices.count() );
-		nif->set<int>( iSubShapes.child( 0, 0 ), "Material", nif->get<int>( iShape, "Material" ) );
+		nif->set<int>( childIndex( iSubShapes, 0, 0 ), "Layer", 1 );
+		nif->set<int>( childIndex( iSubShapes, 0, 0 ), "Num Vertices", vertices.count() );
+		nif->set<int>( childIndex( iSubShapes, 0, 0 ), "Material", nif->get<int>( iShape, "Material" ) );
 		nif->setArray<float>( iPackedShape, "Unknown Floats", { 0.0f, 0.0f, 0.1f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.1f } );
 		nif->set<float>( iPackedShape, "Scale", 1.0f );
 		nif->setArray<float>( iPackedShape, "Unknown Floats 2", { 1.0f, 1.0f, 1.0f } );
@@ -468,8 +468,8 @@ public:
 		nif->updateArray( iTriangles );
 
 		for ( int t = 0; t < triangles.size(); t++ ) {
-			nif->set<Triangle>( iTriangles.child( t, 0 ), "Triangle", triangles[ t ] );
-			nif->set<Vector3>( iTriangles.child( t, 0 ), "Normal", normals.value( t ) );
+			nif->set<Triangle>( childIndex( iTriangles, t, 0 ), "Triangle", triangles[ t ] );
+			nif->set<Vector3>( childIndex( iTriangles, t, 0 ), "Normal", normals.value( t ) );
 		}
 
 		nif->set<int>( iPackedData, "Num Vertices", vertices.count() );
