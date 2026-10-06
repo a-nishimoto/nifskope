@@ -54,6 +54,8 @@ public:
 
 	// call this once on startup to load the XML descriptions
 	static bool loadXML();
+	// parse a specific XML file, returns an error string (empty on success)
+	static QString parseXmlDescription( const QString & filename );
 
 	// when creating kfmmodels from outside the main thread better protect them with a QReadLocker
 	static QReadWriteLock XMLlock;
@@ -112,8 +114,6 @@ protected:
 	static QList<quint32> supportedVersions;
 
 	static QHash<QString, NifBlockPtr> compounds;
-
-	static QString parseXmlDescription( const QString & filename );
 
 	friend class KfmXmlHandler;
 }; // class NifModel
