@@ -1,3 +1,4 @@
+#include "testenv.h"
 #include "testregistry.h"
 
 #include <QApplication>
@@ -9,11 +10,14 @@
 //! Runs every registered test class. An optional first argument naming a class runs only that class.
 int main( int argc, char * argv[] )
 {
-	// Headless unless the caller picked a platform; NifModel opens QMessageBoxes on some error paths
+	// Headless unless the caller picked a platform; the code under test opens QMessageBoxes on some error paths
 	if ( qEnvironmentVariableIsEmpty( "QT_QPA_PLATFORM" ) )
 		qputenv( "QT_QPA_PLATFORM", "offscreen" );
 
 	QApplication app( argc, argv );
+
+	// No QMessageBox is ever really shown (QMessageBox::showEvent() crashes on Windows' offscreen platform)
+	TestEnv::installMessageBoxGuard();
 
 	// NifModel/NifValue read QSettings; never touch the developer's real preferences
 	QCoreApplication::setOrganizationName( "NifTools" );
@@ -45,7 +49,16 @@ int main( int argc, char * argv[] )
 		if ( !only.isEmpty() && only != QLatin1String( test->metaObject()->className() ) )
 			continue;
 
-		failed += QTest::qExec( test.data(), argcCopy, argvCopy.data() ) != 0;
+		bool classFailed = QTest::qExec( test.data(), argcCopy, argvCopy.data() ) != 0;
+
+		// A box nobody looked for (opened in initTestCase(), or by a class without a cleanup()) fails the class as well
+		QStringList stray = TestEnv::takeMessageBoxes();
+		if ( !stray.isEmpty() ) {
+			qCritical( "%s: message box opened and not taken: %s", test->metaObject()->className(), qPrintable( stray.join( " | " ) ) );
+			classFailed = true;
+		}
+
+		failed += classFailed;
 	}
 
 	return failed;

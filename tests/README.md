@@ -175,9 +175,14 @@ When bumping `lib/zlib`, raise the floor in `tst_Zlib::minimumVersion` in the sa
   not depend on the working directory or on where the build directory is.
 * **Headless.** `main.cpp` selects the `offscreen` Qt platform unless `QT_QPA_PLATFORM` is already set and builds a
   `QApplication`. Many error paths in the models open a `QMessageBox` through `Message::critical()/append()` even
-  when the model's message mode is silent, so `cleanup()` in each class fails the test if a message box is left
-  open. `TestEnv::takeMessageBoxes()` closes them. A few tests expect one and count it. The offscreen plugin prints
-  `This plugin does not support propagateSizeHints()` for those; it is harmless.
+  when the model's message mode is silent. No box is ever really shown: `main.cpp` calls
+  `TestEnv::installMessageBoxGuard()`, an application event filter that records a `QMessageBox` when it is about to
+  be shown and consumes the `QShowEvent`, so `QMessageBox::showEvent()` never runs (on Windows' offscreen platform it
+  crashes the process: Qt 5.15 calls through a native interface that plugin does not have). `cleanup()` in each
+  class fails the test if a box was recorded and not taken, and `main.cpp` checks again after each class.
+  `TestEnv::takeMessageBoxes()` returns the texts of the recorded boxes and hides them. A few tests expect one and
+  count it. The offscreen plugin may print `This plugin does not support raise()` or `propagateSizeHints()` for
+  those; it is harmless.
 * **Settings are sandboxed.** `main.cpp` points `QSettings` at a temporary directory. `NifModel` takes its version
   and user versions from the "Startup Defaults" settings, which is how `TestEnv::makeModel()` picks a game profile.
 * **Global state.** The parsed XML tables and `NifValue`'s type and enum maps are process-wide statics. Every class
@@ -197,7 +202,7 @@ Use `TestEnv::makeModel()`, `buildScene()`, `buildRichScene()` and `diffModels()
 (`StubModel`, also there, is a `BaseModel` that is neither a NIF nor a KFM, with a version number of your choosing),
 `saveBytes()` / `loadBytes()` for a file in memory, `diffBytes()` to say where two files differ, and `countValue()`,
 `floatValue()`, `linkValue()` and `valueOf<T>()` for `NifValue`s that stop the program when the type refuses the value.
-Close message boxes with `takeMessageBoxes()` (never delete them: `Message::append()` caches them).
+Take the message boxes a test provokes with `takeMessageBoxes()` (never delete them: `Message::append()` caches them).
 
 Expected numbers are computed independently of the code under test (python3 `struct` or numpy, the expression is in a
 comment next to the number), never read back from the code. A defect found while writing a test is recorded with

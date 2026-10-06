@@ -103,8 +103,17 @@ QString diffBytes( const QByteArray & got, const QByteArray & expected );
 //! condition holds: name, type, child count and value. Returns the first difference, empty if equal
 QString diffModels( const BaseModel & a, const BaseModel & b );
 
-//! Closes every QMessageBox the code under test opened and returns their texts. The app reports many
-//! errors with Message::critical()/append(), which creates a message box even when no one can see it.
+//! Keeps every QMessageBox the code under test opens off the screen, on every platform. The app reports many
+//! errors with Message::critical()/append(), which opens a message box even when no one can see it, and
+//! QMessageBox::showEvent() crashes on the offscreen platform on Windows (Qt 5.15: it asks the platform plugin for
+//! a native interface that the plugin does not have). The guard is an application event filter that records a box
+//! when it is about to be shown and takes the QShowEvent away, so showEvent() never runs. Call it once, right after
+//! the QApplication is created (main.cpp does).
+void installMessageBoxGuard();
+
+//! Returns the texts of the message boxes the code under test opened since the last call (each box once, in the order
+//! it was first shown) and hides them: Message::append() keeps its boxes and shows the same one again later, and a
+//! hidden box is shown, and so recorded, again. Needs installMessageBoxGuard().
 QStringList takeMessageBoxes();
 
 }

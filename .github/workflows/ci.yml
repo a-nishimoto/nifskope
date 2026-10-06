@@ -130,9 +130,11 @@ jobs:
       # TODO(maintainers): how the macOS job gets to run Qt 5.15.2, which is
       # x86_64 only, is not decided. Today the runner is arm64, the ci-macos
       # preset cross-compiles to x86_64, and this step makes sure that Rosetta
-      # is there to run the result. The alternatives are a native Intel runner
-      # (macos-26-intel and macos-15-intel are listed in the runner-images
-      # README) and a Qt 5.15 built for arm64 (Homebrew's qt@5 is one).
+      # is there to run the result. Build, tests and signing work that way;
+      # macdeployqt is the weak point (see "Warm up otool" below). The
+      # alternatives are a native Intel runner (macos-26-intel and
+      # macos-15-intel are listed in the runner-images README) and a Qt 5.15
+      # built for arm64 (Homebrew's qt@5 is one).
       - name: Check for Rosetta (macOS arm64)
         if: runner.os == 'macOS' && runner.arch == 'ARM64'
         run: arch -x86_64 /usr/bin/true || sudo softwareupdate --install-rosetta --agree-to-license
@@ -176,9 +178,56 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      # Also runs macdeployqt / windeployqt
+      # Qt 5.15's macdeployqt starts otool for every binary it looks at, waits 30
+      # seconds for the answer and goes on with an empty one when it does not
+      # come. On the macos-26 runner the first run timed out three times in a
+      # row, otool answered in a fraction of a second two and a half minutes
+      # later, and the bundle was signed without Qt: the install exited with 0,
+      # and so did codesign --verify. If that is a slow first start of the
+      # x86_64 tools, it should happen here and not inside those 30 seconds.
+      # macdeployqt is x86_64 and runs under Rosetta, and so does everything it
+      # starts, so that is how they are started; the timings in the log say
+      # which tool is slow. A slow answer is not a failure.
+      - name: Warm up otool (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 10
+        continue-on-error: true
+        run: |
+          exe="$RUNNER_TEMP/build/bin/NifSkope.app/Contents/MacOS/NifSkope"
+          uname -m; sw_vers -productVersion; xcode-select -p
+          time otool -L "$exe" > /dev/null
+          if [ "$(uname -m)" = arm64 ]; then
+            time arch -x86_64 otool -L "$exe" > /dev/null
+            for tool in install_name_tool codesign; do
+              time arch -x86_64 "/usr/bin/$tool" > /dev/null 2>&1 || true
+            done
+          fi
+
+      # Also runs macdeployqt / windeployqt. The install fails when macdeployqt
+      # did not deploy Qt (cmake/NifskopeInstall.cmake). On macOS it is then
+      # tried once more, with a warning: the failure seen so far looked like a
+      # slow first start of otool, which does not repeat
       - name: Install
-        run: cmake --install "$RUNNER_TEMP/build"
+        id: install
+        run: |
+          if cmake --install "$RUNNER_TEMP/build"; then exit 0; fi
+          [ "$RUNNER_OS" = macOS ] || exit 1
+          echo "::warning::cmake --install failed, trying once more (macdeployqt waiting for a slow otool?)"
+          cmake --install "$RUNNER_TEMP/build"
+
+      # When both attempts failed: the same macdeployqt run again, on a copy, at
+      # its most verbose, and what else is running
+      - name: Diagnose the install (macOS)
+        if: failure() && steps.install.outcome == 'failure' && runner.os == 'macOS'
+        timeout-minutes: 10
+        continue-on-error: true
+        run: |
+          app="$RUNNER_TEMP/install/NifSkope.app"
+          find "$app/Contents" -maxdepth 2 | sort
+          ps -axo pid,etime,stat,command | grep -E 'otool|xcrun|macdeployqt|oahd' | grep -v grep || true
+          rm -rf "$RUNNER_TEMP/diag.app"
+          cp -R "$app" "$RUNNER_TEMP/diag.app"
+          time macdeployqt "$RUNNER_TEMP/diag.app" -always-overwrite -no-strip -codesign=- -verbose=3 2>&1 | tail -n 300
 
       # nif.xml, kfm.xml, style.qss, shaders/ and its default textures sit
       # where the program looks for them
@@ -254,6 +303,8 @@ jobs:
       # without the variables that would let it find Qt outside the bundle. The
       # version is printed before any window or GL context is created. The
       # alarm keeps a message box (a missing nif.xml, say) from holding the step.
+      # It is generous: Rosetta translates the freshly copied frameworks on this
+      # first launch (the first x86_64 test launch took 22 seconds).
       - name: Smoke test the installed copy (macOS)
         if: runner.os == 'macOS'
         timeout-minutes: 5
@@ -265,12 +316,12 @@ jobs:
               { echo "NifSkope has @rpath references and no RPATH @executable_path/../Frameworks"; exit 1; }
           fi
           cd /
-          if ! perl -e 'alarm 60; exec @ARGV' env \
+          if ! perl -e 'alarm 180; exec @ARGV' env \
               -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM -u QT_QPA_PLATFORM_PLUGIN_PATH -u QML2_IMPORT_PATH \
               -u DYLD_FRAMEWORK_PATH -u DYLD_LIBRARY_PATH \
               "$app/MacOS/NifSkope" --version > "$RUNNER_TEMP/version.txt" 2> "$RUNNER_TEMP/version.err"; then
             cat "$RUNNER_TEMP/version.txt" "$RUNNER_TEMP/version.err"
-            echo "NifSkope --version failed or did not exit within 60 seconds"
+            echo "NifSkope --version failed or did not exit within 180 seconds"
             exit 1
           fi
           cat "$RUNNER_TEMP/version.txt" "$RUNNER_TEMP/version.err"

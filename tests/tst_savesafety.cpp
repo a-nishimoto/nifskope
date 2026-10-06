@@ -5,6 +5,7 @@
 #include "model/basemodel.h"
 #include "model/nifmodel.h"
 
+#include <QApplication>
 #include <QBuffer>
 #include <QFile>
 #include <QDir>
@@ -217,6 +218,40 @@ private slots:
 		QVERIFY( good.open( QIODevice::WriteOnly ) );
 		QVERIFY( nif->save( good ) );
 		QVERIFY( good.size() > 100 );
+	}
+
+	//! The test program's message box guard (TestEnv::installMessageBoxGuard()) records a box without showing it: the QShowEvent is
+	//! consumed before QMessageBox::showEvent() runs, which crashes the process on Windows' offscreen platform. It is also the
+	//! function that adds the Ok button, so a box that was really shown has one.
+	void messageBoxGuard_recordsWithoutShowing()
+	{
+		Message::critical( nullptr, "guard probe" );
+
+		QMessageBox * probe = nullptr;
+		for ( QWidget * w : QApplication::topLevelWidgets() ) {
+			QMessageBox * box = qobject_cast<QMessageBox *>( w );
+			if ( box && box->text() == "guard probe" )
+				probe = box;
+		}
+		QVERIFY( probe );
+		QVERIFY2( probe->buttons().isEmpty(), "QMessageBox::showEvent() ran" );
+
+		QCOMPARE( TestEnv::takeMessageBoxes(), QStringList( "guard probe " ) );
+		QVERIFY( !probe->isVisible() );
+		QVERIFY( TestEnv::takeMessageBoxes().isEmpty() );
+	}
+
+	//! Message::append() keeps its boxes and shows the same one again for the same text: a box that was taken is recorded again
+	void messageBoxGuard_recordsACachedBoxShownAgain()
+	{
+		Message::append( "guard cache", "first" );
+		QCOMPARE( TestEnv::takeMessageBoxes().count(), 1 );
+		QVERIFY( TestEnv::takeMessageBoxes().isEmpty() );
+
+		Message::append( "guard cache", "second" );
+		QStringList again = TestEnv::takeMessageBoxes();
+		QCOMPARE( again.count(), 1 );
+		QVERIFY2( again.first().contains( "first" ) && again.first().contains( "second" ), qPrintable( again.first() ) );
 	}
 };
 

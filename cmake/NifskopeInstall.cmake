@@ -67,15 +67,45 @@ if(APPLE)
 		# the top-level file, for macOS too. Homebrew's Qt is referenced by absolute path and works either way.
 		# "-codesign=-" signs ad hoc: arm64 refuses to run binaries whose signature the rewrite invalidated. The
 		# signature also seals the links created above, so they must exist before this runs. macdeployqt prints ERROR
-		# lines that are harmless (exit status 0): "Cannot resolve rpath" for Homebrew's webp plugin, "is not an object
-		# file" for each data link in Contents/MacOS
+		# lines that are harmless: "Cannot resolve rpath" for Homebrew's webp plugin, "is not an object file" for each
+		# data link in Contents/MacOS. One is not: when its otool calls time out (5.15.2 waits 30 seconds for each and
+		# goes on with the empty answer: "Could not parse otool output" for the executable, "QProcess: Destroyed while
+		# process otool is still running"), it finds no frameworks to copy, says nothing more under -always-overwrite,
+		# signs the bare executable and exits with 0, and that bundle passes codesign --verify. So the result is
+		# checked: every Qt framework the executable links, and the platform plugin, must be in the bundle. Frameworks
+		# and PlugIns are removed first, so that an earlier install cannot satisfy the check. A Qt that is not built as
+		# frameworks (a static one) has nothing to copy
+		set(NIFSKOPE_MACDEPLOYQT_VERBOSE 1 CACHE STRING "macdeployqt -verbose level, 0 to 3: 1 reports errors only, 2 what it copies and signs, 3 every otool run")
 		find_program(NIFSKOPE_MACDEPLOYQT macdeployqt HINTS ${_qt_bin_hints})
 		if(NIFSKOPE_MACDEPLOYQT)
+			set(_deployed_qt "")
+			get_target_property(_qt_core ${NIFSKOPE_QT}::Core LOCATION)
+			if(_qt_core MATCHES "\\.framework/")
+				foreach(_component IN LISTS NIFSKOPE_QT_CORE_COMPONENTS NIFSKOPE_QT_APP_COMPONENTS)
+					list(APPEND _deployed_qt "Frameworks/Qt${_component}.framework")
+				endforeach()
+				list(APPEND _deployed_qt "PlugIns/platforms/libqcocoa.dylib")
+			endif()
 			install(CODE "
-				execute_process(COMMAND \"${NIFSKOPE_MACDEPLOYQT}\" \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/NifSkope.app\"
-					-always-overwrite -no-strip -codesign=- RESULT_VARIABLE _result)
+				set(_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/NifSkope.app\")
+				file(REMOVE_RECURSE \"\${_app}/Contents/Frameworks\" \"\${_app}/Contents/PlugIns\")
+				execute_process(COMMAND \"${NIFSKOPE_MACDEPLOYQT}\" \"\${_app}\"
+					-always-overwrite -no-strip -codesign=- -verbose=${NIFSKOPE_MACDEPLOYQT_VERBOSE} RESULT_VARIABLE _result)
 				if(NOT _result EQUAL 0)
 					message(FATAL_ERROR \"macdeployqt failed: \${_result}\")
+				endif()
+				set(_missing \"\")
+				foreach(_file ${_deployed_qt})
+					if(NOT EXISTS \"\${_app}/Contents/\${_file}\")
+						list(APPEND _missing \"\${_file}\")
+					endif()
+				endforeach()
+				if(_missing)
+					string(REPLACE \";\" \", \" _missing \"\${_missing}\")
+					message(FATAL_ERROR \"macdeployqt exited with 0 but did not deploy Qt: \${_app}/Contents lacks \${_missing}.\\n\"
+						\"Look above for 'Could not parse otool output' and 'QProcess: Destroyed while process': Qt 5.15's \"
+						\"macdeployqt gives every otool 30 seconds and goes on with an empty answer when that is not enough \"
+						\"(seen on a fresh CI runner). Check that 'otool -L <executable>' answers, then install again.\")
 				endif()")
 		else()
 			message(WARNING "macdeployqt was not found: building works, \"cmake --install\" will fail. Set NIFSKOPE_MACDEPLOYQT, or NIFSKOPE_DEPLOY_QT=OFF to install without deploying Qt")

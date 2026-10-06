@@ -75,10 +75,10 @@
 		{
 			"name": "ci-macos",
 			"displayName": "CI macOS (Qt 5.15, x86_64)",
-			"description": "Qt 5.15.2 for macOS is x86_64 only: on an arm64 runner this cross-compiles and the tests run under Rosetta. The deployment target is the project default for x86_64 (10.13, like qmake)",
+			"description": "Qt 5.15.2 for macOS is x86_64 only: on an arm64 runner this cross-compiles and the tests run under Rosetta. The deployment target is the project default for x86_64 (10.13, like qmake). macdeployqt runs at its most verbose for now (drop it once the job has been green): the timestamps of the log show which otool call is slow",
 			"inherits": "ci-base",
 			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
-			"cacheVariables": { "CMAKE_OSX_ARCHITECTURES": "x86_64" }
+			"cacheVariables": { "CMAKE_OSX_ARCHITECTURES": "x86_64", "NIFSKOPE_MACDEPLOYQT_VERBOSE": "3" }
 		},
 		{
 			"name": "ci-windows",

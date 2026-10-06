@@ -5,7 +5,9 @@
 #include <QApplication>
 #include <QBuffer>
 #include <QDir>
+#include <QEvent>
 #include <QMessageBox>
+#include <QPointer>
 #include <QSettings>
 
 
@@ -748,18 +750,64 @@ QString TestEnv::diffModels( const BaseModel & a, const BaseModel & b )
 	return out;
 }
 
+namespace {
+
+//! The event filter behind TestEnv::installMessageBoxGuard(). An application event filter sees an event before the
+//! widget's own event(), so a QShowEvent consumed here never reaches QMessageBox::showEvent().
+class MessageBoxGuard final : public QObject
+{
+public:
+	explicit MessageBoxGuard( QObject * parent ) : QObject( parent ) {}
+
+	//! The boxes shown since the last take, each once
+	QList<QPointer<QMessageBox>> shown;
+
+	bool eventFilter( QObject * watched, QEvent * event ) override
+	{
+		if ( event->type() != QEvent::Show )
+			return false;
+
+		QMessageBox * box = qobject_cast<QMessageBox *>( watched );
+		if ( !box )
+			return false;
+
+		if ( !shown.contains( box ) )
+			shown.append( box );
+
+		return true;
+	}
+};
+
+QPointer<MessageBoxGuard> messageBoxGuard;
+
+}
+
+void TestEnv::installMessageBoxGuard()
+{
+	if ( messageBoxGuard )
+		return;
+
+	messageBoxGuard = new MessageBoxGuard( qApp );
+	qApp->installEventFilter( messageBoxGuard );
+}
+
 QStringList TestEnv::takeMessageBoxes()
 {
+	if ( !messageBoxGuard )
+		qFatal( "TestEnv::takeMessageBoxes(): TestEnv::installMessageBoxGuard() was not called" );
+
+	QList<QPointer<QMessageBox>> boxes;
+	boxes.swap( messageBoxGuard->shown );
+
 	QStringList texts;
 
-	for ( QWidget * w : QApplication::topLevelWidgets() ) {
-		if ( QMessageBox * box = qobject_cast<QMessageBox *>( w ) ) {
-			if ( box->isVisible() ) {
-				texts << box->text() + " " + box->detailedText();
-				// Only hide it: Message::append() keeps the pointer and shows the same box again later
-				box->close();
-			}
-		}
+	for ( const QPointer<QMessageBox> & box : boxes ) {
+		if ( !box )
+			continue;
+
+		texts << box->text() + " " + box->detailedText();
+		// Only hide it: Message::append() keeps the pointer and shows the same box again later
+		box->hide();
 	}
 
 	return texts;

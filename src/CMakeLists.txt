@@ -51,7 +51,20 @@ if(NOT NIFSKOPE_BUILD_APP)
 endif()
 
 # ==== nifskope (the application) ===============================================================================
+# Link the legacy libGL (qmake: -lGL), not GLVND's libOpenGL + libGLX, which FindOpenGL prefers by default (policy
+# CMP0072 is NEW since CMake 3.11). gl/gltex.cpp calls glActiveTextureARB and glClientActiveTextureARB directly and only
+# resolves them at run time on Windows, and libOpenGL has no ARB-suffixed entry points: they are in libGL alone, so the
+# link fails there ("DSO missing from command line"). Windows and macOS ignore the setting.
+set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL REQUIRED)
+if(UNIX AND NOT APPLE)
+	# Without a libGL.so (libgl-dev) FindOpenGL quietly falls back to GLVND: say so now instead of failing in the linker
+	if(NOT OPENGL_gl_LIBRARY)
+		message(FATAL_ERROR "libGL was not found: install the OpenGL development package (Debian/Ubuntu: libgl-dev, or libgl1-mesa-dev), or set OPENGL_gl_LIBRARY")
+	endif()
+	# CMake 3.x reports "Found OpenGL: .../libOpenGL.so" here whichever library OpenGL::GL is
+	message(STATUS "OpenGL::GL is ${OPENGL_gl_LIBRARY}")
+endif()
 # FindOpenGL does not require GLU and creates OpenGL::GLU only when it found it
 if(NOT TARGET OpenGL::GLU)
 	message(FATAL_ERROR "GLU was not found: install the GLU development package (Debian/Ubuntu: libglu1-mesa-dev), or set OPENGL_glu_LIBRARY")

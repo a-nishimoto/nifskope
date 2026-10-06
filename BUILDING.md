@@ -11,7 +11,7 @@ project (`NifSkope.pro`) is kept as the reference build, see [qmake](#qmake) at 
 * The submodules, which hold the XML description (`nif.xml`, `kfm.xml`) and the vendored libraries:
   `git submodule update --init --recursive`
 * Linux: the OpenGL and GLU development packages, `libgl1-mesa-dev libglu1-mesa-dev` on Debian and Ubuntu. A missing
-  GLU is reported at configure time with that package name.
+  GLU or libGL is reported at configure time with that package name.
 * macOS: Xcode or its command line tools, and a Qt built for the architecture you build for. Homebrew's `qt@5` is arm64
   on Apple silicon. The Qt 5.15.2 installers are x86_64 only: build with `-DCMAKE_OSX_ARCHITECTURES=x86_64` (the
   `ci-macos` preset does) and run the result under Rosetta.
@@ -67,6 +67,7 @@ the CMake build writes its `README.txt` into `<build>/generated`.
 | `NIFSKOPE_USE_SYSTEM_GLI` | OFF | gli with glm instead of `lib/gli`. Experimental: not tried with a real package, and the vendored copy is an old snapshot |
 | `NIFSKOPE_USE_GL_QPAINTER` | OFF | Define `USE_GL_QPAINTER` (statistics overlay painted with QPainter) |
 | `NIFSKOPE_DEPLOY_QT` | ON (Windows, macOS) | Run `windeployqt` / `macdeployqt` during `cmake --install`. Packagers turn it OFF |
+| `NIFSKOPE_MACDEPLOYQT_VERBOSE` | 1 | macOS: `macdeployqt`'s `-verbose` level, 0 to 3. 1 is its default (errors only), 2 lists what it copies and signs, 3 logs every `otool` run |
 | `NIFSKOPE_LINUX_FHS_LAYOUT` | OFF | Linux: install to `bin/` and `share/nifskope/` instead of `lib/nifskope/` |
 | `NIFSKOPE_REVISION_OVERRIDE` | empty | Revision shown in About. Empty: the first 7 digits of `git rev-parse HEAD`, or none outside a git checkout |
 | `NIFSKOPE_ALLOW_QT6` | OFF | Continue with Qt 6 for porting work |
@@ -113,7 +114,11 @@ cmake --install build-nifskope --prefix /path/to/install
 only where its Qt is: the install keeps the executable's RPATH to the Qt it was built with. Qt's installers reference
 their frameworks through `@rpath`, and that RPATH is also what `macdeployqt` resolves them with, so it must be there
 when the deployment runs. `macdeployqt` prints a dozen `ERROR:` lines (an unresolvable `@rpath` for Homebrew's webp
-plugin, "is not an object file" for the data links in `Contents/MacOS`); the exit status of the install is what counts.
+plugin, "is not an object file" for the data links in `Contents/MacOS`) and exits with 0 even when it deployed nothing,
+so the install checks the result: it fails, naming what is missing, unless `Contents/Frameworks` holds every Qt
+framework the executable links and `Contents/PlugIns/platforms` the `cocoa` plugin. Qt 5.15's `macdeployqt` waits 30
+seconds for each `otool` it starts and goes on with an empty answer (`Could not parse otool output: ""`, `QProcess:
+Destroyed while process`) when that is not enough, as it did on a new CI runner. Installing again is the first thing to try.
 
 NifSkope looks in its own directory first and, on Linux, in `/usr/share/nifskope` for most of its files, never in
 `<prefix>/share`. That is why Linux installs to `lib/nifskope/` by default. `-DNIFSKOPE_LINUX_FHS_LAYOUT=ON` gives the
