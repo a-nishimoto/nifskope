@@ -57,6 +57,7 @@ extern "C"
 {
 #include <libqhull/qhull_a.h>
 
+#ifndef NIFSKOPE_QHULL_EXTERNAL
 #include <libqhull/libqhull.c>
 #include <libqhull/mem.c>
 #include <libqhull/qset.c>
@@ -74,6 +75,7 @@ extern "C"
 #include <libqhull/usermem.c>
 #include <libqhull/random.c>
 #include <libqhull/rboxlib.c>
+#endif
 }
 #ifdef _MSC_VER
 #pragma warning(pop)

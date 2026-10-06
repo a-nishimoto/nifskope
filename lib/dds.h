@@ -12,7 +12,7 @@
 #ifndef _DDS_H_
 #define _DDS_H_
 
-#include <dxgiformat.h>
+#include "dxgiformat.h"
 
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
