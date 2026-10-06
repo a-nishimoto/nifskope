@@ -756,7 +756,9 @@ QString BSA::owner( const QString & ) const
 // see bsa.h
 QDateTime BSA::fileTime( const QString & ) const
 {
-	return bsaInfo.created( );
+	// what the deprecated QFileInfo::created() returned
+	QDateTime birth = bsaInfo.birthTime();
+	return birth.isValid() ? birth : bsaInfo.metadataChangeTime();
 }
 
 bool BSA::scan( const BSA::BSAFolder * folder, QStandardItem * item, QString path )

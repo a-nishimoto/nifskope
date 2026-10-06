@@ -362,7 +362,7 @@ public:
 				offsetMap.insert( oldOffsets[i], -1 );
 			} else {
 				offsetMap.insert( oldOffsets[i], x );
-				bytes += s;
+				bytes += s.toUtf8();
 				bytes.append( '\0' );
 				x += ( s.length() + 1 );
 			}

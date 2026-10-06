@@ -272,7 +272,7 @@ public:
 	uint ownerId( const QString & ) const override final;
 	//! See QFileInfo::owner().
 	QString owner( const QString & ) const override final;
-	//! See QFileInfo::created().
+	//! See QFileInfo::birthTime(); QFileInfo::metadataChangeTime() if the file system has no birth time.
 	QDateTime fileTime( const QString & ) const override final;
 	//! See QFileInfo::absoluteFilePath().
 	QString getAbsoluteFilePath( const QString & ) const override final;

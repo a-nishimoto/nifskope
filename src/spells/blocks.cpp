@@ -673,7 +673,8 @@ public:
 	{
 		QMenu menu;
 		menu.addSection( tr( "Alphabetical" ) );
-		for ( QMenu * m : blockMenu( nif, NifModel::allNiBlocks().toStdList(), true, true ) ) {
+		const QStringList blockNames = NifModel::allNiBlocks();
+		for ( QMenu * m : blockMenu( nif, std::list<QString>( blockNames.begin(), blockNames.end() ), true, true ) ) {
 			if ( m->title().isEmpty() )
 				menu.addSection( tr( "Categories" ) );
 			else if ( m->actions().size() == 1 )
@@ -827,7 +828,8 @@ public:
 		NifItem * item = static_cast<NifItem *>(index.internalPointer());
 		auto type = item->temp();
 
-		std::list<QString> allIds = nif->allNiBlocks().toStdList();
+		const QStringList blockNames = nif->allNiBlocks();
+		std::list<QString> allIds( blockNames.begin(), blockNames.end() );
 		blockFilter( nif, allIds, type );
 
 		auto iBlock = nif->getBlock( index );

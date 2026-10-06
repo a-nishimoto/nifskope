@@ -143,12 +143,11 @@ void NifSkope::initActions()
 	aSelectFont = ui->aSelectFont;
 
 	// Build all actions list
-	allActions = QSet<QAction *>::fromList( 
-		ui->tFile->actions() 
+	const QList<QAction *> actionList = ui->tFile->actions()
 		<< ui->mRender->actions()
 		<< ui->tRender->actions()
-		<< ui->tAnim->actions()
-	);
+		<< ui->tAnim->actions();
+	allActions = QSet<QAction *>( actionList.begin(), actionList.end() );
 
 	// Undo/Redo
 	undoAction = nif->undoStack->createUndoAction( this, tr( "&Undo" ) );
@@ -581,7 +580,7 @@ void NifSkope::initToolBars()
 	animGroups->setMinimumWidth( 60 );
 	animGroups->setSizeAdjustPolicy( QComboBox::AdjustToContents );
 	animGroups->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Minimum );
-	connect( animGroups, static_cast<void (QComboBox::*)(const QString&)>(&QComboBox::activated), ogl, &GLView::setSceneSequence );
+	connect( animGroups, &QComboBox::textActivated, ogl, &GLView::setSceneSequence );
 
 	ui->tAnim->addWidget( animSlider );
 	animGroupsAction = ui->tAnim->addWidget( animGroups );

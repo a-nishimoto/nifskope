@@ -1035,7 +1035,7 @@ TexFlipDialog::TexFlipDialog( NifModel * n, QModelIndex & index, QWidget * paren
 
 	// texture action group; see options.cpp
 	QButtonGroup * actgrp = new QButtonGroup( this );
-	connect( actgrp, static_cast<void (QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), this, &TexFlipDialog::textureAction );
+	connect( actgrp, &QButtonGroup::idClicked, this, &TexFlipDialog::textureAction );
 	int btnid = 0;
 	for ( const QString& tfaname : QStringList{
 			Spell::tr( "Add Textures" ), Spell::tr( "Remove Texture" ),

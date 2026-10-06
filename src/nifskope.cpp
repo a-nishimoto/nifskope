@@ -769,7 +769,7 @@ void NifSkope::openArchive( const QString & archive )
 {
 	// Clear memory from previously opened archives
 	bsaModel->clear();
-	bsaProxyModel->clear();
+	bsaProxyModel->invalidate();
 	bsaProxyModel->setSourceModel( emptyModel );
 	bsaView->setModel( emptyModel );
 	bsaView->setSortingEnabled( false );

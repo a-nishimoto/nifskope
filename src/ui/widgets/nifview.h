@@ -46,7 +46,7 @@ class NifTreeView final : public QTreeView
 
 public:
 	//! Constructor
-	NifTreeView( QWidget * parent = 0, Qt::WindowFlags flags = 0 );
+	NifTreeView( QWidget * parent = 0, Qt::WindowFlags flags = Qt::WindowFlags() );
 	//! Destructor
 	~NifTreeView();
 

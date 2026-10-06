@@ -341,7 +341,8 @@ void ColorWheel::setColor( int x, int y )
 {
 	if ( pressed == Circle ) {
 		QLineF l( QPointF( width() / 2.0, height() / 2.0 ), QPointF( x, y ) );
-		H = l.angle( QLineF( 0, 1, 0, 0 ) ) / 360.0;
+		const QLineF up( 0, 1, 0, 0 );
+		H = qMin( l.angleTo( up ), up.angleTo( l ) ) / 360.0;
 
 		if ( l.dx() > 0 )
 			H = 1.0 - H;
