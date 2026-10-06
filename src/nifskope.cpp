@@ -830,7 +830,7 @@ void NifSkope::openArchive( const QString & archive )
 		connect( filterTimer, &QTimer::timeout, [this]() {
 			auto text = ui->bsaFilter->text();
 
-			bsaProxyModel->setFilterRegExp( QRegExp( text, Qt::CaseInsensitive, QRegExp::Wildcard ) );
+			bsaProxyModel->setFilterWildcard( text );
 			bsaView->expandAll();
 
 			if ( text.isEmpty() ) {

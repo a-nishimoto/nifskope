@@ -2577,7 +2577,7 @@ void NifModel::updateLinks( int block, NifItem * parent )
 void NifModel::checkLinks( int block, QStack<int> & parents )
 {
 	parents.push( block );
-	foreach ( const auto child, childLinks.value( block ) ) {
+	for ( const auto child : childLinks.value( block ) ) {
 		if ( parents.contains( child ) ) {
 			auto m = tr( "infinite recursive link construct detected %1 -> %2" ).arg( block ).arg( child );
 			if ( msgMode == UserMessage ) {

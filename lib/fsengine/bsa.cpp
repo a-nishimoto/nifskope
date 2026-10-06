@@ -832,7 +832,8 @@ Qt::ItemFlags BSAModel::flags( const QModelIndex & index ) const
 BSAProxyModel::BSAProxyModel( QObject * parent )
 	: QSortFilterProxyModel( parent )
 {
-
+	// The wildcard filters set by setFilterWildcard() inherit this
+	setFilterCaseSensitivity( Qt::CaseInsensitive );
 }
 
 void BSAProxyModel::setFiletypes( QStringList types )
@@ -844,12 +845,14 @@ void BSAProxyModel::setFilterByNameOnly( bool nameOnly )
 {
 	filterByNameOnly = nameOnly;
 
-	setFilterRegExp( filterRegExp() );
+	// Filter again with the current pattern
+	invalidateFilter();
 }
 
 void BSAProxyModel::resetFilter()
 {
-	setFilterRegExp( QRegExp( "*", Qt::CaseInsensitive, QRegExp::Wildcard ) );
+	// Matches everything, but is not an empty filter: filterAcceptsRow() only applies the file types to a non-empty one
+	setFilterWildcard( "*" );
 }
 
 bool BSAProxyModel::filterAcceptsRow( int sourceRow, const QModelIndex & sourceParent ) const

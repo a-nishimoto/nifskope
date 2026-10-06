@@ -47,6 +47,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QSettings>
 
 #include <algorithm> // std::stable_sort
+#include <utility> // std::as_const
 
 
 //! @file glnode.cpp Scene management for visible NiNodes and their children.
@@ -81,7 +82,9 @@ NodeList::~NodeList()
 
 void NodeList::clear()
 {
-	foreach ( Node * n, nodes ) {
+	// del() removes the node from nodes (and may delete it), so iterate a copy
+	const QVector<Node *> snapshot = nodes;
+	for ( Node * n : snapshot ) {
 		del( n );
 	}
 }
@@ -132,7 +135,7 @@ void NodeList::validate()
 		if ( !n->isValid() )
 			rem.append( n );
 	}
-	foreach ( Node * n, rem ) {
+	for ( Node * n : std::as_const( rem ) ) {
 		del( n );
 	}
 }
