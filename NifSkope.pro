@@ -330,14 +330,14 @@ nvtristrip {
 }
 
 qhull {
-    !*msvc*:QMAKE_CFLAGS += -isystem ../nifskope/lib/qhull/src
-    !*msvc*:QMAKE_CXXFLAGS += -isystem ../nifskope/lib/qhull/src
+    !*msvc*:QMAKE_CFLAGS += -isystem $$PWD/lib/qhull/src
+    !*msvc*:QMAKE_CXXFLAGS += -isystem $$PWD/lib/qhull/src
     else:INCLUDEPATH += lib/qhull/src
     HEADERS += $$files($$PWD/lib/qhull/src/libqhull/*.h, false)
 }
 
 gli {
-    !*msvc*:QMAKE_CXXFLAGS += -isystem ../nifskope/lib/gli/gli -isystem ../nifskope/lib/gli/external
+    !*msvc*:QMAKE_CXXFLAGS += -isystem $$PWD/lib/gli/gli -isystem $$PWD/lib/gli/external
     else:INCLUDEPATH += lib/gli/gli lib/gli/external
     HEADERS += $$files($$PWD/lib/gli/gli/*.hpp, true)
     HEADERS += $$files($$PWD/lib/gli/gli/*.inl, true)
@@ -346,11 +346,25 @@ gli {
 }
 
 zlib {
-    !*msvc*:QMAKE_CFLAGS += -isystem ../nifskope/lib/zlib
-    !*msvc*:QMAKE_CXXFLAGS += -isystem ../nifskope/lib/zlib
-    else:INCLUDEPATH += lib/zlib
-    HEADERS += $$files($$PWD/lib/zlib/*.h, false)
-    SOURCES += $$files($$PWD/lib/zlib/*.c, false)
+	!*msvc*:QMAKE_CFLAGS += -isystem $$PWD/lib/zlib
+	!*msvc*:QMAKE_CXXFLAGS += -isystem $$PWD/lib/zlib
+	else:INCLUDEPATH += lib/zlib
+	HEADERS += $$files($$PWD/lib/zlib/*.h, false)
+
+	# Compile only the zlib core, not a glob of lib/zlib/*.c.
+	# The gz*.c file API is unused by NifSkope and needs HAVE_UNISTD_H on POSIX
+	SOURCES += \
+		lib/zlib/adler32.c \
+		lib/zlib/compress.c \
+		lib/zlib/crc32.c \
+		lib/zlib/deflate.c \
+		lib/zlib/infback.c \
+		lib/zlib/inffast.c \
+		lib/zlib/inflate.c \
+		lib/zlib/inftrees.c \
+		lib/zlib/trees.c \
+		lib/zlib/uncompr.c \
+		lib/zlib/zutil.c
 }
 
 lz4 {
