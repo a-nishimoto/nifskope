@@ -1,0 +1,208 @@
+{
+	"version": 3,
+	"cmakeMinimumRequired": { "major": 3, "minor": 22, "patch": 0 },
+	"configurePresets": [
+		{
+			"name": "base",
+			"hidden": true,
+			"generator": "Ninja",
+			"binaryDir": "${sourceParentDir}/build-${sourceDirName}/${presetName}",
+			"installDir": "${sourceParentDir}/install-${sourceDirName}/${presetName}",
+			"cacheVariables": {
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_PREFIX_PATH": "$env{QT_ROOT_DIR}",
+				"NIFSKOPE_BUILD_TESTS": "ON"
+			}
+		},
+		{
+			"name": "dev",
+			"displayName": "Developer (Debug)",
+			"description": "Debug build with the tests. Add -DCMAKE_PREFIX_PATH=<Qt 5.15 prefix> unless Qt's bin directory is on PATH or QT_ROOT_DIR is set",
+			"inherits": "base",
+			"cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+		},
+		{
+			"name": "release",
+			"displayName": "Release",
+			"inherits": "base",
+			"cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+		},
+		{
+			"name": "asan",
+			"displayName": "Debug + AddressSanitizer/UBSan (Linux, macOS)",
+			"inherits": "base",
+			"condition": { "type": "notEquals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+				"CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+				"CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+			}
+		},
+		{
+			"name": "vs2022",
+			"displayName": "Visual Studio 2022 (multi-config)",
+			"inherits": "base",
+			"generator": "Visual Studio 17 2022",
+			"architecture": { "value": "x64", "strategy": "set" },
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+		},
+		{
+			"name": "vcpkg",
+			"hidden": true,
+			"description": "System libraries from a vcpkg manifest (vcpkg.json): zlib and lz4 instead of lib/zlib and lib/lz4frame.c. Needs VCPKG_ROOT",
+			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+			"cacheVariables": { "NIFSKOPE_USE_SYSTEM_ZLIB": "ON", "NIFSKOPE_USE_SYSTEM_LZ4": "ON" }
+		},
+		{
+			"name": "dev-vcpkg",
+			"displayName": "Developer (Debug), vcpkg libraries",
+			"inherits": ["dev", "vcpkg"]
+		},
+		{ "name": "release-vcpkg", "displayName": "Release, vcpkg libraries", "inherits": ["release", "vcpkg"]},
+		{
+			"name": "ci-base",
+			"hidden": true,
+			"inherits": "release",
+			"description": "GitHub Actions: Qt comes from jurplel/install-qt-action (QT_ROOT_DIR)"
+		},
+		{
+			"name": "ci-linux",
+			"displayName": "CI Linux (GCC, Qt 5.15)",
+			"inherits": "ci-base",
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+		},
+		{
+			"name": "ci-macos",
+			"displayName": "CI macOS (Qt 5.15, x86_64)",
+			"description": "Qt 5.15.2 for macOS is x86_64 only: on an arm64 runner this cross-compiles and the tests run under Rosetta. The deployment target is the project default for x86_64 (10.13, like qmake). macdeployqt runs at its most verbose for now (drop it once the job has been green): the timestamps of the log show which otool call is slow",
+			"inherits": "ci-base",
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+			"cacheVariables": { "CMAKE_OSX_ARCHITECTURES": "x86_64", "NIFSKOPE_MACDEPLOYQT_VERBOSE": "3" }
+		},
+		{
+			"name": "ci-windows",
+			"displayName": "CI Windows (MSVC x64, Qt 5.15)",
+			"description": "Expects the MSVC environment (ilammy/msvc-dev-cmd or a Developer Command Prompt). cl is pinned because MinGW gcc (Strawberry Perl) is also on PATH on GitHub runners",
+			"inherits": "ci-base",
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+			"architecture": { "value": "x64", "strategy": "external" },
+			"cacheVariables": { "CMAKE_C_COMPILER": "cl", "CMAKE_CXX_COMPILER": "cl" }
+		},
+		{
+			"name": "ci-linux-vcpkg",
+			"displayName": "CI Linux (GCC, Qt 5.15), vcpkg zlib and lz4",
+			"inherits": ["ci-linux", "vcpkg"]
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "linux-only",
+			"hidden": true,
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+		},
+		{
+			"name": "macos-only",
+			"hidden": true,
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+		},
+		{
+			"name": "windows-only",
+			"hidden": true,
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+		},
+		{
+			"name": "not-windows",
+			"hidden": true,
+			"condition": { "type": "notEquals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+		},
+		{ "name": "dev", "configurePreset": "dev" },
+		{ "name": "release", "configurePreset": "release" },
+		{ "name": "asan", "inherits": "not-windows", "configurePreset": "asan" },
+		{ "name": "dev-vcpkg", "configurePreset": "dev-vcpkg" },
+		{ "name": "release-vcpkg", "configurePreset": "release-vcpkg" },
+		{
+			"name": "vs2022-debug",
+			"inherits": "windows-only",
+			"configurePreset": "vs2022",
+			"configuration": "Debug"
+		},
+		{
+			"name": "vs2022-release",
+			"inherits": "windows-only",
+			"configurePreset": "vs2022",
+			"configuration": "Release"
+		},
+		{ "name": "ci-linux", "inherits": "linux-only", "configurePreset": "ci-linux" },
+		{ "name": "ci-macos", "inherits": "macos-only", "configurePreset": "ci-macos" },
+		{ "name": "ci-windows", "inherits": "windows-only", "configurePreset": "ci-windows" },
+		{ "name": "ci-linux-vcpkg", "inherits": "linux-only", "configurePreset": "ci-linux-vcpkg" },
+		{
+			"name": "ci-linux-install",
+			"inherits": "linux-only",
+			"configurePreset": "ci-linux",
+			"targets": ["install"]
+		},
+		{
+			"name": "ci-macos-install",
+			"inherits": "macos-only",
+			"configurePreset": "ci-macos",
+			"targets": ["install"]
+		},
+		{
+			"name": "ci-windows-install",
+			"inherits": "windows-only",
+			"configurePreset": "ci-windows",
+			"targets": ["install"]
+		}
+	],
+	"testPresets": [
+		{
+			"name": "linux-only",
+			"hidden": true,
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+		},
+		{
+			"name": "macos-only",
+			"hidden": true,
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+		},
+		{
+			"name": "windows-only",
+			"hidden": true,
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+		},
+		{
+			"name": "not-windows",
+			"hidden": true,
+			"condition": { "type": "notEquals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+		},
+		{
+			"name": "base",
+			"hidden": true,
+			"output": { "outputOnFailure": true},
+			"execution": { "noTestsAction": "error" }
+		},
+		{ "name": "dev", "inherits": "base", "configurePreset": "dev" },
+		{ "name": "release", "inherits": "base", "configurePreset": "release" },
+		{ "name": "asan", "inherits": ["base", "not-windows"], "configurePreset": "asan" },
+		{ "name": "dev-vcpkg", "inherits": "base", "configurePreset": "dev-vcpkg" },
+		{ "name": "release-vcpkg", "inherits": "base", "configurePreset": "release-vcpkg" },
+		{
+			"name": "vs2022-debug",
+			"inherits": ["base", "windows-only"],
+			"configurePreset": "vs2022",
+			"configuration": "Debug"
+		},
+		{
+			"name": "vs2022-release",
+			"inherits": ["base", "windows-only"],
+			"configurePreset": "vs2022",
+			"configuration": "Release"
+		},
+		{ "name": "ci-linux", "inherits": ["base", "linux-only"], "configurePreset": "ci-linux" },
+		{ "name": "ci-macos", "inherits": ["base", "macos-only"], "configurePreset": "ci-macos" },
+		{ "name": "ci-windows", "inherits": ["base", "windows-only"], "configurePreset": "ci-windows" },
+		{ "name": "ci-linux-vcpkg", "inherits": ["base", "linux-only"], "configurePreset": "ci-linux-vcpkg" }
+	]
+}

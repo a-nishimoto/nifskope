@@ -74,6 +74,8 @@ public:
 
 	//! Find and parse the XML file
 	static bool loadXML();
+	//! Parse a specific XML file using a NifXmlHandler. Returns an error string, empty on success
+	static QString parseXmlDescription( const QString & filename );
 
 	//! When creating NifModels from outside the main thread protect them with a QReadLocker
 	static QReadWriteLock XMLlock;
@@ -377,9 +379,6 @@ protected:
 	UpdateType needUpdates;
 
 	void updateModel( UpdateType value = utAll );
-
-	//! Parse the XML file using a NifXmlHandler
-	static QString parseXmlDescription( const QString & filename );
 
 	// XML structures
 	static QList<quint32> supportedVersions;

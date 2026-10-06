@@ -15,3 +15,7 @@ indent_style = space
 [*.{frag,prog,vert}]
 indent_size = 4
 indent_style = tab
+
+[{CMakeLists.txt,*.cmake,CMakePresets.json,vcpkg*.json}]
+indent_size = 4
+indent_style = tab

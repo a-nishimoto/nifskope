@@ -1,0 +1,504 @@
+# Continuous integration for NifSkope.
+#
+# Every job builds and runs the Qt Test suite in tests/ (NIF/KFM load and save
+# path, zlib/BSA decompression) and builds the application itself with Qt 5.15.
+# There are three jobs:
+#
+#   cmake         the CMake build (CMakePresets.json, BUILDING.md) on Linux
+#                 (GCC), Windows (MSVC x64) and macOS: configure with a ci-*
+#                 preset, build, run ctest (one test per test class, plus the
+#                 application checks), install, and check the installed tree.
+#                 This is the build that is going to replace the qmake one.
+#   qmake-legacy  the qmake build (NifSkope.pro, tests/tests.pro) on Linux
+#                 only, kept as the reference build until it is removed.
+#   cmake-vcpkg   the CMake build on Linux with zlib and lz4 from vcpkg
+#                 (vcpkg.json) instead of the vendored copies.
+#
+# The tests run headless on Qt's "offscreen" platform plugin, so no display
+# server (xvfb) is needed. The application's main window needs an OpenGL
+# context, which hosted runners do not provide, so it is only asked for its
+# version: by ctest on the copy in the build directory (Linux, macOS), and on
+# the installed copy (all three; the installed macOS bundle cannot start
+# offscreen and is run with the cocoa platform, see the step).
+#
+# Build directories live in $RUNNER_TEMP, outside the checkout: CMake refuses a
+# build directory inside the source tree, and the qmake job builds out of the
+# source tree as well.
+
+name: CI
+
+on:
+  push:
+    branches: [develop, master]
+  pull_request:
+  workflow_dispatch:
+
+# The jobs only read the repository
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the superseded run. Pushes to
+# develop/master are never cancelled: the group there is the commit, so every
+# commit gets its own run (with one group per branch, a run waiting in the
+# queue is replaced by the next push and that commit is never built).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # 5.15.2 is the last Qt 5.15 that jurplel/install-qt-action can fetch from
+  # download.qt.io; NifSkope.pro requires Qt 5.7 or higher
+  QT_VERSION: '5.15.2'
+
+jobs:
+  cmake:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Explicit image labels rather than ubuntu-latest, windows-latest and
+          # macos-latest, so that a runner image bump is a deliberate change:
+          # the Qt 5.15.2 binaries date from 2020. Linux and macOS are what the
+          # -latest labels point to today. Windows is deliberately not:
+          # windows-latest and windows-2025 are the Visual Studio 2026 image,
+          # and Qt 5.15.2's msvc2019 build with /std:c++latest has not been
+          # tried with that compiler; windows-2022 has Visual Studio 2022 (see
+          # the table in the README of github.com/actions/runner-images).
+          #
+          # app_dir: where the installed executable and its data files are,
+          # relative to the install prefix (see cmake/NifskopeInstall.cmake)
+          - name: Linux (GCC, Qt 5.15), CMake
+            id: cmake-linux
+            os: ubuntu-24.04
+            qt_arch: gcc_64
+            preset: ci-linux
+            app_dir: lib/nifskope
+          - name: Windows (MSVC x64, Qt 5.15), CMake
+            id: cmake-windows-x64
+            os: windows-2022
+            qt_arch: win64_msvc2019_64
+            preset: ci-windows
+            app_dir: .
+          # Qt 5.15.2 for macOS is x86_64 only: the ci-macos preset builds for
+          # x86_64 on the arm64 runner and the tests run under Rosetta
+          - name: macOS (Qt 5.15), CMake
+            id: cmake-macos
+            os: macos-26
+            qt_arch: clang_64
+            preset: ci-macos
+            app_dir: NifSkope.app/Contents/MacOS
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install system packages (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev libfontconfig1 fonts-dejavu-core
+
+      # Exports QT_ROOT_DIR and puts Qt's bin directory on PATH; the ci-*
+      # presets read QT_ROOT_DIR
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: ${{ matrix.qt_arch }}
+          cache: true
+
+      # Ninja with cl needs the MSVC environment; the ci-windows preset pins cl
+      - name: Set up MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # TODO(maintainers): how the macOS job gets to run Qt 5.15.2, which is
+      # x86_64 only, is not decided. Today the runner is arm64, the ci-macos
+      # preset cross-compiles to x86_64, and this step makes sure that Rosetta
+      # is there to run the result. Build, tests and signing work that way;
+      # macdeployqt is the weak point (see "Warm up otool" below). The
+      # alternatives are a native Intel runner (macos-26-intel and
+      # macos-15-intel are listed in the runner-images README) and a Qt 5.15
+      # built for arm64 (Homebrew's qt@5 is one).
+      - name: Check for Rosetta (macOS arm64)
+        if: runner.os == 'macOS' && runner.arch == 'ARM64'
+        run: arch -x86_64 /usr/bin/true || sudo softwareupdate --install-rosetta --agree-to-license
+
+      - name: Show tool versions
+        run: |
+          cmake --version
+          ninja --version
+          qmake -v
+
+      # Everything modified after this file is something the build wrote
+      - name: Mark the start of the build
+        run: touch "$RUNNER_TEMP/build-start-marker"
+
+      # The preset supplies generator, Qt prefix (QT_ROOT_DIR), compiler and
+      # architecture. Its build and install directories are beside the checkout
+      # by default; here they go to $RUNNER_TEMP
+      - name: Configure
+        run: |
+          cmake --preset ${{ matrix.preset }} \
+            -B "$RUNNER_TEMP/build" -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/install"
+
+      - name: Build
+        run: cmake --build "$RUNNER_TEMP/build"
+
+      # One CTest test per test class, plus app_layout (the files the program
+      # reads are beside the executable) and, off Windows, app_version (the
+      # executable starts and prints its version). QT_QPA_PLATFORM=offscreen
+      # is a property of the tests
+      - name: Test
+        run: |
+          ctest --test-dir "$RUNNER_TEMP/build" --output-on-failure --no-tests=error \
+            --output-junit "$RUNNER_TEMP/junit-${{ matrix.id }}.xml"
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.id }}
+          path: ${{ runner.temp }}/junit-${{ matrix.id }}.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # Qt 5.15's macdeployqt starts otool for every binary it looks at, waits 30
+      # seconds for the answer and goes on with an empty one when it does not
+      # come. On the macos-26 runner the first run timed out three times in a
+      # row, otool answered in a fraction of a second two and a half minutes
+      # later, and the bundle was signed without Qt: the install exited with 0,
+      # and so did codesign --verify. If that is a slow first start of the
+      # x86_64 tools, it should happen here and not inside those 30 seconds.
+      # macdeployqt is x86_64 and runs under Rosetta, and so does everything it
+      # starts, so that is how they are started; the timings in the log say
+      # which tool is slow. A slow answer is not a failure.
+      - name: Warm up otool (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 10
+        continue-on-error: true
+        run: |
+          exe="$RUNNER_TEMP/build/bin/NifSkope.app/Contents/MacOS/NifSkope"
+          uname -m; sw_vers -productVersion; xcode-select -p
+          time otool -L "$exe" > /dev/null
+          if [ "$(uname -m)" = arm64 ]; then
+            time arch -x86_64 otool -L "$exe" > /dev/null
+            for tool in install_name_tool codesign; do
+              time arch -x86_64 "/usr/bin/$tool" > /dev/null 2>&1 || true
+            done
+          fi
+
+      # Also runs macdeployqt / windeployqt. The install fails when macdeployqt
+      # did not deploy Qt (cmake/NifskopeInstall.cmake). On macOS it is then
+      # tried once more, with a warning: the failure seen so far looked like a
+      # slow first start of otool, which does not repeat
+      - name: Install
+        id: install
+        run: |
+          if cmake --install "$RUNNER_TEMP/build"; then exit 0; fi
+          [ "$RUNNER_OS" = macOS ] || exit 1
+          echo "::warning::cmake --install failed, trying once more (macdeployqt waiting for a slow otool?)"
+          cmake --install "$RUNNER_TEMP/build"
+
+      # When both attempts failed: the same macdeployqt run again, on a copy, at
+      # its most verbose, and what else is running
+      - name: Diagnose the install (macOS)
+        if: failure() && steps.install.outcome == 'failure' && runner.os == 'macOS'
+        timeout-minutes: 10
+        continue-on-error: true
+        run: |
+          app="$RUNNER_TEMP/install/NifSkope.app"
+          find "$app/Contents" -maxdepth 2 | sort
+          ps -axo pid,etime,stat,command | grep -E 'otool|xcrun|macdeployqt|oahd' | grep -v grep || true
+          rm -rf "$RUNNER_TEMP/diag.app"
+          cp -R "$app" "$RUNNER_TEMP/diag.app"
+          time macdeployqt "$RUNNER_TEMP/diag.app" -always-overwrite -no-strip -codesign=- -verbose=3 2>&1 | tail -n 300
+
+      # nif.xml, kfm.xml, style.qss, shaders/ and its default textures sit
+      # where the program looks for them
+      - name: Check the installed layout
+        run: cmake -DAPP_DIR="$RUNNER_TEMP/install/${{ matrix.app_dir }}" -P cmake/CheckLayout.cmake
+
+      - name: Verify the signature (macOS)
+        if: runner.os == 'macOS'
+        run: codesign --verify --deep --strict "$RUNNER_TEMP/install/NifSkope.app"
+
+      # Runs the installed copy, from another directory. bin/nifskope is a link
+      # to lib/nifskope/nifskope: the first two checks fail if the link points
+      # to the directory instead (the executable name did not reach the install
+      # rules). A missing nif.xml or kfm.xml opens an error box and the version
+      # is printed all the same; the offscreen platform reports the box with the
+      # propagateSizeHints warning, which is what the last check looks for. The
+      # time limit keeps a hang from holding the job for its 60 minutes.
+      - name: Smoke test the installed copy (Linux)
+        if: runner.os == 'Linux'
+        timeout-minutes: 5
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          grep -F '"../lib/nifskope/nifskope"' "$RUNNER_TEMP/build/cmake_install.cmake"
+          test -f "$(readlink -f "$RUNNER_TEMP/install/bin/nifskope")"
+          cd /
+          "$RUNNER_TEMP/install/bin/nifskope" --version > "$RUNNER_TEMP/version.txt" 2> "$RUNNER_TEMP/version.err"
+          cat "$RUNNER_TEMP/version.txt" "$RUNNER_TEMP/version.err"
+          grep -E '^NifSkope [0-9]+\.[0-9]+ ' "$RUNNER_TEMP/version.txt"
+          ! grep -q propagateSizeHints "$RUNNER_TEMP/version.err"
+
+      # NifSkope.exe has the GUI subsystem. Started without a console and
+      # without redirected output, Qt reports --version in a message box that
+      # waits for a click, and Windows reports a missing DLL in a dialog of its
+      # own. So the process is started with its output redirected to files,
+      # which makes Qt write to them, and with a time limit (Start-Process
+      # -Wait has none). The installed copy is run, with PATH reduced to the
+      # system directories: Qt's bin directory is on PATH on the runner, which
+      # would hide a DLL or plugin that windeployqt did not copy. ctest has no
+      # app_version on Windows.
+      - name: Smoke test the installed copy (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'version.txt'
+          $err = Join-Path $env:RUNNER_TEMP 'version.err'
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          Remove-Item Env:QT_PLUGIN_PATH, Env:QML2_IMPORT_PATH -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath (Join-Path $env:RUNNER_TEMP 'install\NifSkope.exe') `
+            -ArgumentList '--version' -WorkingDirectory $env:RUNNER_TEMP `
+            -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
+          $null = $p.Handle  # keeps the exit code readable once the process is gone
+          if (-not $p.WaitForExit(60000)) {
+            $p.Kill()
+            throw 'NifSkope.exe --version did not exit within 60 seconds (a message box?)'
+          }
+          Get-Content -Path $out, $err
+          if ($p.ExitCode -ne 0) { throw ('NifSkope.exe --version exited with code 0x{0:X}' -f $p.ExitCode) }
+          if (-not (Select-String -Path $out -Pattern '^NifSkope \d+\.\d+ ' -Quiet)) { throw 'NifSkope.exe --version printed no version' }
+
+      # The installed bundle has to carry its own Qt. The Qt 5.15.2 installers
+      # reference their frameworks through @rpath, and macdeployqt only points
+      # the executable at Contents/Frameworks when the executable still has the
+      # RPATH of the build (CMAKE_INSTALL_RPATH_USE_LINK_PATH in the top-level
+      # CMakeLists.txt). Without it the frameworks are copied all the same and
+      # the bundle dies at launch with "no LC_RPATH's found", which neither the
+      # layout check nor codesign notices, so look at both the RPATH (only when
+      # the executable has @rpath references: a Qt that is referenced by
+      # absolute path, Homebrew's, gets them rewritten instead) and a real
+      # launch. The launch uses the default (cocoa) platform, because
+      # macdeployqt deploys no other. It starts in another directory and
+      # without the variables that would let it find Qt outside the bundle. The
+      # version is printed before any window or GL context is created. The
+      # alarm keeps a message box (a missing nif.xml, say) from holding the step.
+      # It is generous: Rosetta translates the freshly copied frameworks on this
+      # first launch (the first x86_64 test launch took 22 seconds).
+      - name: Smoke test the installed copy (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 5
+        run: |
+          app="$RUNNER_TEMP/install/NifSkope.app/Contents"
+          test -d "$app/Frameworks/QtCore.framework" || { echo "Qt was not copied into the bundle"; exit 1; }
+          if otool -L "$app/MacOS/NifSkope" | grep -F '@rpath/' > /dev/null; then
+            otool -l "$app/MacOS/NifSkope" | grep -A2 LC_RPATH | grep -F '@executable_path/../Frameworks' ||
+              { echo "NifSkope has @rpath references and no RPATH @executable_path/../Frameworks"; exit 1; }
+          fi
+          cd /
+          if ! perl -e 'alarm 180; exec @ARGV' env \
+              -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM -u QT_QPA_PLATFORM_PLUGIN_PATH -u QML2_IMPORT_PATH \
+              -u DYLD_FRAMEWORK_PATH -u DYLD_LIBRARY_PATH \
+              "$app/MacOS/NifSkope" --version > "$RUNNER_TEMP/version.txt" 2> "$RUNNER_TEMP/version.err"; then
+            cat "$RUNNER_TEMP/version.txt" "$RUNNER_TEMP/version.err"
+            echo "NifSkope --version failed or did not exit within 180 seconds"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/version.txt" "$RUNNER_TEMP/version.err"
+          grep -E '^NifSkope [0-9]+\.[0-9]+ ' "$RUNNER_TEMP/version.txt"
+
+      - name: Check that the build did not write into the source tree
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          changed="$(find . -path ./.git -prune -o -type f -newer "$RUNNER_TEMP/build-start-marker" -print)"
+          if [ -n "$changed" ]; then echo "$changed"; echo "The build wrote into the source tree"; exit 1; fi
+
+      # upload-artifact does not keep file modes, so the Linux and macOS
+      # installs are tarred. The Linux one does not bundle Qt; the Windows and
+      # macOS ones do.
+      - name: Package install tree
+        if: runner.os != 'Windows'
+        run: tar -czf "$RUNNER_TEMP/nifskope-${{ matrix.id }}.tar.gz" -C "$RUNNER_TEMP/install" .
+
+      - name: Upload build (Linux, macOS)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: nifskope-${{ matrix.id }}
+          path: ${{ runner.temp }}/nifskope-${{ matrix.id }}.tar.gz
+          retention-days: 14
+
+      - name: Upload build (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: nifskope-${{ matrix.id }}
+          path: ${{ runner.temp }}\install
+          retention-days: 14
+
+  # The qmake build, kept so that it is covered until it is removed. Linux only:
+  # the CMake job covers the other systems.
+  qmake-legacy:
+    name: Linux (GCC, Qt 5.15), qmake
+    # Pinned like the cmake job's images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # NifSkope_functions.pri reads the revision from .git/HEAD, so a .git
+      # directory must be there (a shallow clone would do as well; full history
+      # is kept for anything that wants git describe). "recursive" is needed:
+      # build/docsys has submodules of its own (nifxml, kfmxml) holding nif.xml
+      # and kfm.xml, which the app copies and the tests parse. lib/ holds zlib,
+      # qhull and gli.
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      # install-qt-action also installs Qt's own runtime libraries (xcb etc.)
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev libglu1-mesa-dev libfontconfig1 fonts-dejavu-core
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: gcc_64
+          cache: true
+
+      - name: Show tool versions
+        run: |
+          qmake -v
+          c++ --version
+
+      # ---- Tests -------------------------------------------------------------
+      # Built first: they cover the data path and compile quickly, so a problem
+      # there is reported before the long application build.
+
+      - name: Build tests
+        run: |
+          mkdir -p "$RUNNER_TEMP/build-tests"
+          cd "$RUNNER_TEMP/build-tests"
+          qmake "$GITHUB_WORKSPACE/tests/tests.pro" CONFIG+=release
+          make -j"$(getconf _NPROCESSORS_ONLN)"
+
+      # The exit code is the number of failing test classes; pipefail (bash) lets
+      # it through tee. Qt Test's -o file overwrites the file for every class,
+      # so the log is taken from stdout instead.
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cd "$RUNNER_TEMP/build-tests"
+          ./nifskope_tests -o -,txt 2>&1 | tee test-log.txt
+
+      - name: Upload test log
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-log-qmake-linux
+          path: ${{ runner.temp }}/build-tests/test-log.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # ---- Application -------------------------------------------------------
+
+      - name: Build NifSkope
+        run: |
+          mkdir -p "$RUNNER_TEMP/build-app"
+          cd "$RUNNER_TEMP/build-app"
+          qmake "$GITHUB_WORKSPACE/NifSkope.pro" CONFIG+=release
+          make -j"$(getconf _NPROCESSORS_ONLN)"
+
+      # Starts the binary far enough to resolve its libraries and construct a
+      # QApplication; it exits before any window or GL context is created.
+      - name: Smoke test (--version)
+        timeout-minutes: 5
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          "$RUNNER_TEMP/build-app/release/NifSkope" --version
+
+  # zlib and lz4 from vcpkg (vcpkg.json) instead of the vendored copies. Not run
+  # before: it is allowed to fail until it has been seen green once
+  cmake-vcpkg:
+    name: Linux (GCC, Qt 5.15), CMake, vcpkg zlib and lz4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    continue-on-error: true
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev libfontconfig1 fonts-dejavu-core
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: gcc_64
+          cache: true
+
+      # vcpkg's default binary cache
+      - name: Restore the vcpkg binary cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+
+      # vcpkg's manifest mode runs during the configure. The runner image has
+      # vcpkg and sets VCPKG_INSTALLATION_ROOT; the *-vcpkg presets read
+      # VCPKG_ROOT
+      - name: Configure
+        run: |
+          export VCPKG_ROOT="$VCPKG_INSTALLATION_ROOT"
+          cmake --preset ci-linux-vcpkg -B "$RUNNER_TEMP/build"
+
+      - name: Build
+        run: cmake --build "$RUNNER_TEMP/build"
+
+      - name: Test
+        run: ctest --test-dir "$RUNNER_TEMP/build" --output-on-failure --no-tests=error

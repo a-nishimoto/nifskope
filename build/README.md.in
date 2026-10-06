@@ -29,6 +29,7 @@ For information about development:
 
 - Visit our [Discord #dev channel](https://discord.gg/zvWZrrJ).
 - Visit the NifTools.org [development subforum](https://forum.niftools.org/6-nifskope-development/).
+- See [BUILDING.md](https://github.com/niftools/nifskope/blob/develop/BUILDING.md) for building with CMake (qmake still works, see the end of that file).
 - Refer to our [GitHub wiki](https://github.com/niftools/nifskope/wiki#wiki-development) for information on compilation.  
 
 

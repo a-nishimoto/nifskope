@@ -36,6 +36,8 @@ NifSkope.pro.user
 # Binaries
 NifSkope
 NifSkope.exe
+nifskope_tests
+nifskope_tests.exe
 
 # VC Project
 *.cd
@@ -72,3 +74,13 @@ vc100.pdb
 # OS
 [Tt]humbs.db
 *.DS_Store
+
+# CMake: builds go outside the checkout (see BUILDING.md), these only catch an accidental in-tree configure
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+.cache/
+cmake-build-*/

@@ -31,7 +31,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***** END LICENCE BLOCK *****/
 
 #include "bsa.h"
-#include "dds.h"
+#include "../dds.h"
 #include "zlib/zlib.h"
 #include "lz4frame.h"
 
