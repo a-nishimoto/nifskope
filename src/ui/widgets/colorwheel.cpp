@@ -212,7 +212,6 @@ void ColorWheel::paintEvent( QPaintEvent * e )
 	QPainter p( this );
 	p.translate( width() / 2, height() / 2 );
 	p.setRenderHint( QPainter::Antialiasing );
-	p.setRenderHint( QPainter::HighQualityAntialiasing );
 
 	p.setPen( Qt::NoPen );
 
@@ -226,7 +225,7 @@ void ColorWheel::paintEvent( QPaintEvent * e )
 
 	p.setBrush( QBrush( cgrad ) );
 	p.drawEllipse( QRectF( -s, -s, s * 2, s * 2 ) );
-	p.setBrush( palette().color( QPalette::Background ) );
+	p.setBrush( palette().color( QPalette::Window ) );
 	p.drawEllipse( QRectF( -c, -c, c * 2, c * 2 ) );
 
 	double x = ( H - 0.5 ) * 2 * M_PI;

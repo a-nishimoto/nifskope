@@ -1001,13 +1001,13 @@ void NifSkope::setViewFont( const QFont & font )
 {
 	list->setFont( font );
 	QFontMetrics metrics( list->font() );
-	list->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	list->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	tree->setFont( font );
-	tree->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	tree->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	header->setFont( font );
-	header->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	header->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	kfmtree->setFont( font );
-	kfmtree->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	kfmtree->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	ogl->setFont( font );
 }
 

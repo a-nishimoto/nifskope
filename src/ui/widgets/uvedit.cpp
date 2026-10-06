@@ -670,7 +670,7 @@ void UVWidget::mouseMoveEvent( QMouseEvent * e )
 		}
 		break;
 
-	case Qt::MidButton:
+	case Qt::MiddleButton:
 		pos += zoom * QPointF( dPos.x(), -dPos.y() );
 		updateViewRect( width(), height() );
 
@@ -742,7 +742,7 @@ void UVWidget::wheelEvent( QWheelEvent * e )
 {
 	switch ( e->modifiers() ) {
 	case Qt::NoModifier:
-		zoom *= 1.0 + ( e->delta() / 8.0 ) / ZOOMUNIT;
+		zoom *= 1.0 + ( e->angleDelta().y() / 8.0 ) / ZOOMUNIT;
 
 		if ( zoom < MINZOOM ) {
 			zoom = MINZOOM;

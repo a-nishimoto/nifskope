@@ -165,7 +165,7 @@ public:
 
 		// Color the field background if the value type is a color
 		//	Otherwise normal behavior
-		QVariant color = index.data( Qt::BackgroundColorRole );
+		QVariant color = index.data( Qt::BackgroundRole );
 		if ( color.canConvert<QColor>() )
 			painter->fillRect( option.rect, color.value<QColor>() );
 		else if ( option.state & QStyle::State_Selected )
@@ -195,7 +195,7 @@ public:
 		// Increase height by 25%
 		height *= 1.25;
 
-		return {option.fontMetrics.width( text ), height};
+		return {option.fontMetrics.horizontalAdvance( text ), height};
 	}
 
 	QWidget * createEditor( QWidget * parent, const QStyleOptionViewItem &, const QModelIndex & index ) const override final

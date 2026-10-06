@@ -521,7 +521,7 @@ static void readMtlLib( const QString & fname, QMap<QString, ObjMaterial> & omat
 	while ( !smtl.atEnd() ) {
 		QString line = smtl.readLine();
 
-		QStringList t = line.split( " ", QString::SkipEmptyParts );
+		QStringList t = line.split( " ", Qt::SkipEmptyParts );
 
 		if ( t.value( 0 ) == "newmtl" ) {
 			if ( !mtlid.isEmpty() )
@@ -682,7 +682,7 @@ void importObj( NifModel * nif, const QModelIndex & index )
 		// parse each line of the file
 		QString line = sobj.readLine();
 
-		QStringList t = line.split( " ", QString::SkipEmptyParts );
+		QStringList t = line.split( " ", Qt::SkipEmptyParts );
 
 		if ( t.value( 0 ) == "mtllib" ) {
 			readMtlLib( fname.left( qMax( fname.lastIndexOf( "/" ), fname.lastIndexOf( "\\" ) ) + 1 ) + t.value( 1 ), omaterials );
