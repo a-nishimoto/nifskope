@@ -862,7 +862,7 @@ public:
 				iBlock = nif->getBlock( nif->getLink( index.parent(), "Target" ) );
 
 			if ( nif->getVersionNumber() > 0x14050000 ) {
-				ctlrMapping.insertMulti( "NiNode", "NiSkinningLODController" );
+				ctlrMapping.insert( "NiNode", "NiSkinningLODController" );
 			}
 			// Block-to-Controller Mapping
 			ctlrFilter( ctlrMapping );

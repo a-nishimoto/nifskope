@@ -532,7 +532,7 @@ public:
 				}
 			}
 
-			QMap<int, int> match;
+			QMultiMap<int, int> match;
 			bool doMatch = true;
 
 			QList<int> tribones;
@@ -588,12 +588,12 @@ public:
 							QVector<Vector3> verts = nif->getArray<Vector3>( iData, "Vertices" );
 
 							for ( int a = 0; a < verts.count(); a++ ) {
-								match.insertMulti( a, a );
+								match.insert( a, a );
 
 								for ( int b = a + 1; b < verts.count(); b++ ) {
 									if ( verts[a] == verts[b] && weights[a] == weights[b] ) {
-										match.insertMulti( a, b );
-										match.insertMulti( b, a );
+										match.insert( a, b );
+										match.insert( b, a );
 									}
 								}
 							}

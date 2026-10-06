@@ -220,7 +220,7 @@ void SpellBook::newSpellRegistered( SpellPtr spell )
 void SpellBook::registerSpell( SpellPtr spell )
 {
 	spells().append( spell );
-	hash().insertMulti( spell->name(), spell );
+	hash().insert( spell->name(), spell );
 
 	if ( spell->instant() )
 		instants().append( spell );

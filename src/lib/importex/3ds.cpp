@@ -244,7 +244,7 @@ void import3ds( NifModel * nif, const QModelIndex & index )
 	float ObjScale;
 	QVector<objMesh> ObjMeshes;
 	QMap<QString, objMaterial> ObjMaterials;
-	QMap<QString, objKfSequence> ObjKeyframes;
+	QMultiMap<QString, objKfSequence> ObjKeyframes;
 
 	QSettings settings;
 	settings.beginGroup( "Import-Export" );
@@ -559,7 +559,7 @@ void import3ds( NifModel * nif, const QModelIndex & index )
 				}
 			}
 
-			ObjKeyframes.insertMulti( newKfSeq.objectName, newKfSeq );
+			ObjKeyframes.insert( newKfSeq.objectName, newKfSeq );
 		}
 	}
 

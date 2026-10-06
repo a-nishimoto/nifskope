@@ -994,7 +994,7 @@ bool UVWidget::setTexCoords()
 		faces.append( face( fIdx, t[0], t[1], t[2] ) );
 
 		for ( int i = 0; i < 3; i++ ) {
-			texcoords2faces.insertMulti( t[i], fIdx );
+			texcoords2faces.insert( t[i], fIdx );
 		}
 	}
 
