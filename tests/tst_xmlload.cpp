@@ -1067,7 +1067,11 @@ private slots:
 	{
 		QFile f( TestEnv::nifXmlPath() );
 		QVERIFY( f.open( QIODevice::ReadOnly ) );
-		const QByteArray lf = f.readAll();
+		// The file on disk has the line ends of the checkout: the pinned nifxml says "*.xml text", so a Windows
+		// checkout has CR LF already. Both variants are made from one with LF only, and a CR left over after that
+		// would be a line end of neither
+		QByteArray lf = f.readAll();
+		lf.replace( "\r\n", "\n" );
 		QVERIFY( !lf.contains( '\r' ) );
 		QByteArray crlf = lf;
 		crlf.replace( '\n', "\r\n" );
