@@ -22,15 +22,29 @@ Anyone can [report issues at GitHub](https://github.com/niftools/nifskope/issues
 You can fork the latest source from [GitHub](https://github.com/niftools/nifskope). See [Fork A Repo](https://help.github.com/articles/fork-a-repo) on how to send your contributions upstream. To grab all submodules, make sure to use `--recursive` like so:
 
 ```
-git clone --recursive git://github.com/<YOUR_USERNAME>/nifskope.git
+git clone --recursive https://github.com/<YOUR_USERNAME>/nifskope.git
 ```
 
 For information about development:
 
 - Visit our [Discord #dev channel](https://discord.gg/zvWZrrJ).
 - Visit the NifTools.org [development subforum](https://forum.niftools.org/6-nifskope-development/).
-- See [BUILDING.md](https://github.com/niftools/nifskope/blob/develop/BUILDING.md) for building with CMake (qmake still works, see the end of that file). NifSkope needs Qt 5.15 (Qt 6 is not supported yet) and a C++20 compiler: GCC 10, Clang 10, Apple clang 12 or MSVC 2019 16.11, or later.
 - Refer to our [GitHub wiki](https://github.com/niftools/nifskope/wiki#wiki-development) for information on compilation.  
+
+
+### Building
+
+NifSkope builds with CMake (the qmake project still works) against Qt 5.15; Qt 6 is not supported yet. It needs a C++20 compiler: GCC 10, Clang 10, Apple clang 12 or MSVC 2019 16.11, or later. With the submodules checked out (see above), a release build and its tests are:
+
+```
+cmake --preset release -DCMAKE_PREFIX_PATH=/path/to/Qt/5.15.2/gcc_64
+cmake --build --preset release
+ctest --preset release
+```
+
+See [BUILDING.md](BUILDING.md) for the prerequisites, the other presets and options, installing, and the qmake build.
+
+The tests are a Qt Test suite in `tests/` (see [tests/README.md](tests/README.md)). GitHub Actions builds and tests NifSkope on Linux (GCC), macOS and Windows (MSVC) for pull requests and for pushes to `develop` and `master`.
 
 
 ### Miscellaneous
