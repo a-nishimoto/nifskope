@@ -37,6 +37,7 @@ add_library(nifskope_core STATIC
 	message.h
 	spellbook.h
 	ui/checkablemessagebox.h
+	ui/wheeldelta.h
 	ui/checkablemessagebox.ui)
 
 set_target_properties(nifskope_core PROPERTIES AUTOMOC ON AUTOUIC ON)

@@ -38,6 +38,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gl/gltools.h"
 #include "model/nifmodel.h"
 #include "ui/settingsdialog.h"
+#include "ui/wheeldelta.h"
 
 #include "lib/nvtristripwrapper.h"
 
@@ -742,7 +743,7 @@ void UVWidget::wheelEvent( QWheelEvent * e )
 {
 	switch ( e->modifiers() ) {
 	case Qt::NoModifier:
-		zoom *= 1.0 + ( e->angleDelta().y() / 8.0 ) / ZOOMUNIT;
+		zoom *= 1.0 + ( wheelDelta( e ) / 8.0 ) / ZOOMUNIT;
 
 		if ( zoom < MINZOOM ) {
 			zoom = MINZOOM;

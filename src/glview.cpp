@@ -39,6 +39,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gl/gltex.h"
 #include "model/nifmodel.h"
 #include "ui/settingsdialog.h"
+#include "ui/wheeldelta.h"
 #include "ui/widgets/fileselect.h"
 
 #include <QApplication>
@@ -1796,9 +1797,9 @@ void GLView::mouseReleaseEvent( QMouseEvent * event )
 void GLView::wheelEvent( QWheelEvent * event )
 {
 	if ( view == ViewWalk )
-		mouseMov += Vector3( 0, 0, event->angleDelta().y() );
+		mouseMov += Vector3( 0, 0, wheelDelta( event ) );
 	else
-		setDistance( Dist * (event->angleDelta().y() < 0 ? 1.0 / 0.8 : 0.8) );
+		setDistance( Dist * (wheelDelta( event ) < 0 ? 1.0 / 0.8 : 0.8) );
 }
 
 

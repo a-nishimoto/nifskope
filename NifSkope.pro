@@ -190,6 +190,7 @@ HEADERS += \
 	src/ui/checkablemessagebox.h \
 	src/ui/settingsdialog.h \
 	src/ui/settingspane.h \
+	src/ui/wheeldelta.h \
 	src/xml/nifexpr.h \
 	src/xml/xmlstream.h \
 	src/glview.h \

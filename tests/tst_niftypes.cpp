@@ -3,6 +3,7 @@
 #include "data/niftypes.h"
 #include "model/kfmmodel.h"
 #include "model/nifmodel.h"
+#include "ui/wheeldelta.h"
 
 #include <QColor>
 #include <QDataStream>
@@ -20,7 +21,7 @@
 	QVERIFY2( ( actual ) == ( expected ), qPrintable( QString( "%1 is %2, expected %3" ).arg( QString::fromLatin1( #actual ), describe( actual ), describe( expected ) ) ) )
 
 
-//! Pure value types and version number conversion; no XML, no models
+//! Pure value types, version number conversion and the wheelDelta() helper of the 3D view; no XML, no models
 class tst_NifTypes final : public QObject
 {
 	Q_OBJECT
@@ -1590,6 +1591,68 @@ private slots:
 			one.SetFlag( l.flag );
 			QCOMPARE( one.toString(), QString( l.text ) );
 		}
+	}
+
+	void wheel_delta_data()
+	{
+		QTest::addColumn<QPoint>( "angle" );
+		QTest::addColumn<QPoint>( "pixel" );
+		QTest::addColumn<int>( "phase" );
+		QTest::addColumn<bool>( "inverted" );
+		QTest::addColumn<int>( "delta" );
+
+		const QPoint none;
+		const int noPhase = Qt::NoScrollPhase, update = Qt::ScrollUpdate, begin = Qt::ScrollBegin, end = Qt::ScrollEnd, momentum = Qt::ScrollMomentum;
+
+		// an ordinary wheel: the vertical angle
+		QTest::newRow( "wheel up" ) << QPoint( 0, 120 ) << none << noPhase << false << 120;
+		QTest::newRow( "wheel down" ) << QPoint( 0, -120 ) << none << noPhase << false << -120;
+		QTest::newRow( "one step down" ) << QPoint( 0, -1 ) << none << noPhase << false << -1;
+		// a sideways scroll (tilt wheel, horizontal trackpad): angleDelta().y() is 0, delta() was the horizontal angle
+		QTest::newRow( "tilt right" ) << QPoint( 120, 0 ) << none << noPhase << false << 120;
+		QTest::newRow( "tilt left" ) << QPoint( -120, 0 ) << none << noPhase << false << -120;
+		QTest::newRow( "trackpad sideways" ) << QPoint( -72, 0 ) << QPoint( -9, 0 ) << update << false << -72;
+		// along both axes: the angle that is larger in magnitude, the vertical one if they are the same
+		QTest::newRow( "diagonal, vertical larger, up" ) << QPoint( -10, 120 ) << none << noPhase << false << 120;
+		QTest::newRow( "diagonal, vertical larger, down" ) << QPoint( 10, -120 ) << none << noPhase << false << -120;
+		QTest::newRow( "diagonal, horizontal larger, right" ) << QPoint( 120, -10 ) << none << noPhase << false << 120;
+		QTest::newRow( "diagonal, horizontal larger, left" ) << QPoint( -120, 10 ) << none << noPhase << false << -120;
+		QTest::newRow( "diagonal, horizontal larger, left, down" ) << QPoint( -120, -10 ) << none << noPhase << false << -120;
+		QTest::newRow( "diagonal, same magnitude" ) << QPoint( 30, -30 ) << none << noPhase << false << -30;
+		QTest::newRow( "diagonal, same magnitude, other signs" ) << QPoint( -30, 30 ) << none << noPhase << false << 30;
+		// the pixel delta, the scroll phase and the inverted flag play no part
+		QTest::newRow( "trackpad, update, inverted" ) << QPoint( 24, -56 ) << QPoint( 3, -7 ) << update << true << -56;
+		QTest::newRow( "trackpad, momentum" ) << QPoint( 40, -16 ) << QPoint( 5, -2 ) << momentum << true << 40;
+		// no angle delta: the second event of a scroll along both axes, and the scroll phase events
+		QTest::newRow( "second event of a diagonal scroll" ) << none << none << update << true << 0;
+		QTest::newRow( "scroll begin" ) << none << none << begin << false << 0;
+		QTest::newRow( "scroll end" ) << none << none << end << true << 0;
+		QTest::newRow( "nothing" ) << none << none << noPhase << false << 0;
+		QTest::newRow( "pixel delta only" ) << none << QPoint( 0, -7 ) << update << false << 0;
+		// the extremes of a 16 bit angle
+		QTest::newRow( "extreme, horizontal larger by one" ) << QPoint( -32768, 32767 ) << none << noPhase << false << -32768;
+		QTest::newRow( "extreme, vertical" ) << QPoint( 0, -32768 ) << none << noPhase << false << -32768;
+	}
+
+	//! What a widget of Qt 5.15 got from QWheelEvent::delta(), which wheelDelta() replaces in the 3D view and the UV editor.
+	/*! The events are built with the constructor that QWidgetWindow::handleWheelEvent() uses, and the values are the delta() that
+	 *  a widget got from scrolls handed to QWindowSystemInterface::handleWheelEvent(): see wheeldelta.h.
+	 */
+	void wheel_delta()
+	{
+		QFETCH( QPoint, angle );
+		QFETCH( QPoint, pixel );
+		QFETCH( int, phase );
+		QFETCH( bool, inverted );
+		QFETCH( int, delta );
+
+		const QWheelEvent e( QPointF( 5, 5 ), QPointF( 105, 105 ), pixel, angle, Qt::NoButton, Qt::NoModifier, Qt::ScrollPhase( phase ), inverted );
+		QCOMPARE( wheelDelta( &e ), delta );
+
+		// the keyboard and the mouse buttons play no part either
+		const QWheelEvent f( QPointF( 7, 9 ), QPointF( 0, 0 ), pixel, angle, Qt::MiddleButton, Qt::ControlModifier | Qt::ShiftModifier,
+		                     Qt::ScrollPhase( phase ), inverted, Qt::MouseEventSynthesizedBySystem );
+		QCOMPARE( wheelDelta( &f ), delta );
 	}
 };
 
