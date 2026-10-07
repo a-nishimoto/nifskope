@@ -82,6 +82,13 @@ NifSkope's own code is compiled with `-Wall -Wextra` (MSVC: `/W3`, plus C4100 an
 without warnings with Apple clang 21, so a new warning is a mistake in the change that adds it. The vendored libraries are
 built without warning options: theirs are not NifSkope's to fix.
 
+With MSVC, NifSkope's own targets (and `NifSkope.pro` and `tests/tests.pro`) define
+`_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING`: in Qt 5.15.2 to 5.15.16, `QVector`, `QList` and `QVarLengthArray` pass
+`stdext::checked_array_iterator` to `std::equal` or `std::copy` on MSVC (`QT_MAKE_CHECKED_ARRAY_ITERATOR`), and the STL
+of Visual Studio 2022 17.8 and later deprecates that class (STL4043, reported as C4996, an error with
+`NIFSKOPE_WERROR_DEPRECATED`; checked against 17.14). It is Qt's use, not NifSkope's. Qt 5.15.17 made those macros
+no-ops from 17.8 on (QTBUG-118993), so the define does nothing there.
+
 The vendored libraries (zlib, lz4, qhull, gli/glm, NvTriStrip, half) are the default and are built from the sources in
 `lib/`: the submodules' own CMake files are not used. The `NIFSKOPE_USE_SYSTEM_*` options use a library found through
 `CMAKE_PREFIX_PATH` or the system. A vcpkg manifest (`vcpkg.json`) provides zlib and lz4: the `dev-vcpkg`,

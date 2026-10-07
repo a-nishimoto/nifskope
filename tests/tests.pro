@@ -31,6 +31,12 @@ DEFINES += \
 	QT_NO_URL_CAST_FROM_STRING \
 	QT_DISABLE_DEPRECATED_BEFORE=$$NIFSKOPE_QT_DEPRECATED_BEFORE
 
+# MSVC, Qt 5.15.2 to 5.15.16: QVector/QList/QVarLengthArray hand stdext::checked_array_iterator to std::equal or
+# std::copy, which the STL of Visual Studio 2022 17.8 and later deprecates (STL4043, C4996). Qt 5.15.17 no longer does
+# (QTBUG-118993). qmake's -w44996 keeps it out of a /W3 build, so this is for parity with NifSkope.pro and the CMake
+# build, where /we4996 makes it an error
+*msvc*:DEFINES += _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
+
 # Where the tests find nif.xml / kfm.xml (the build/docsys submodule)
 DEFINES += NIFSKOPE_SOURCE_DIR=\\\"$${NIFSKOPE_ROOT}\\\"
 

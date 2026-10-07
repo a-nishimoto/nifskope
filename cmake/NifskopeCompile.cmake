@@ -71,6 +71,16 @@ endif()
 
 if(MSVC)
 	target_compile_definitions(nifskope_compile_options INTERFACE _ENABLE_EXTENDED_ALIGNED_STORAGE _CRT_SECURE_NO_WARNINGS)
+	# STL4043, a C4996 and so an error with NIFSKOPE_WERROR_DEPRECATED, for a use that is not ours: on MSVC Qt 5.15.2 to
+	# 5.15.16 (qcompilerdetection.h) define QT_MAKE_CHECKED_ARRAY_ITERATOR as stdext::make_checked_array_iterator, and
+	# QVector<T>::operator== (qvector.h:960 in 5.15.2), QList<T> and QVarLengthArray pass it to std::equal or std::copy.
+	# That instantiates stdext::checked_array_iterator, which the STL of Visual Studio 2022 17.8 and later deprecates in
+	# the C++17 and C++20 modes NifSkope builds in. Qt 5.15.17 made the macros no-ops from 17.8 on (QTBUG-118993), so
+	# this is for the older Qt, the 5.15.2 of CI among them. The diagnostic is located in the STL header, so
+	# /external:W0 for the Qt directories does not hide it. Defined on the command line because yvals_core.h reads it
+	# when the first STL header comes in. Not the umbrella _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS, which would hide
+	# STL4045, STL4046 and STL4048 too. The vendored libraries include no Qt header, so they are fine without it
+	target_compile_definitions(nifskope_compile_options INTERFACE _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
 	# /bigobj: AUTOMOC concatenates a target's moc files into one translation unit (qmake compiled them separately)
 	target_compile_options(nifskope_compile_options INTERFACE /bigobj)
 	if(MSVC_VERSION GREATER 1900)
