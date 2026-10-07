@@ -37,6 +37,7 @@ add_library(nifskope_core STATIC
 	message.h
 	spellbook.h
 	ui/checkablemessagebox.h
+	ui/qpaplatform.h
 	ui/wheeldelta.h
 	ui/checkablemessagebox.ui)
 

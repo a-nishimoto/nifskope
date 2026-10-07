@@ -82,6 +82,7 @@ HEADERS += \
 	$${NIFSKOPE_ROOT}/src/message.h \
 	$${NIFSKOPE_ROOT}/src/spellbook.h \
 	$${NIFSKOPE_ROOT}/src/ui/checkablemessagebox.h \
+	$${NIFSKOPE_ROOT}/src/ui/qpaplatform.h \
 	$${NIFSKOPE_ROOT}/src/ui/wheeldelta.h \
 	$${NIFSKOPE_ROOT}/lib/half.h
 

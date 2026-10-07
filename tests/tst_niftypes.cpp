@@ -3,10 +3,14 @@
 #include "data/niftypes.h"
 #include "model/kfmmodel.h"
 #include "model/nifmodel.h"
+#include "ui/qpaplatform.h"
 #include "ui/wheeldelta.h"
 
 #include <QColor>
 #include <QDataStream>
+#include <QDir>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QTest>
 
 #include <cfloat>
@@ -21,7 +25,7 @@
 	QVERIFY2( ( actual ) == ( expected ), qPrintable( QString( "%1 is %2, expected %3" ).arg( QString::fromLatin1( #actual ), describe( actual ), describe( expected ) ) ) )
 
 
-//! Pure value types, version number conversion and the wheelDelta() helper of the 3D view; no XML, no models
+//! Pure value types, version number conversion and the wheelDelta() and preferredQpaPlatform() helpers of the 3D view and the start-up; no XML, no models
 class tst_NifTypes final : public QObject
 {
 	Q_OBJECT
@@ -1653,6 +1657,92 @@ private slots:
 		const QWheelEvent f( QPointF( 7, 9 ), QPointF( 0, 0 ), pixel, angle, Qt::MiddleButton, Qt::ControlModifier | Qt::ShiftModifier,
 		                     Qt::ScrollPhase( phase ), inverted, Qt::MouseEventSynthesizedBySystem );
 		QCOMPARE( wheelDelta( &f ), delta );
+	}
+
+	void qpa_platform_data()
+	{
+		QTest::addColumn<QString>( "qtQpaPlatform" );
+		QTest::addColumn<QStringList>( "arguments" );
+		QTest::addColumn<QString>( "waylandDisplay" );
+		QTest::addColumn<QString>( "x11Display" );
+		QTest::addColumn<bool>( "xcbInstalled" );
+		QTest::addColumn<QString>( "expected" );
+
+		const QString none;
+		const QStringList noArgs;
+		const QString wl( "wayland-0" ), x( ":0" ), xcb( "xcb" );
+
+		// the case it is for: a Wayland session that has XWayland, nothing asked for, the plugin there
+		QTest::newRow( "Wayland session with XWayland" ) << none << noArgs << wl << x << true << xcb;
+		QTest::newRow( "a file name is no platform" ) << none << QStringList( "/tmp/go.nif" ) << wl << x << true << xcb;
+		QTest::newRow( "an argument that is only called wayland" ) << none << QStringList( "wayland" ) << wl << x << true << xcb;
+		QTest::newRow( "-platformtheme is not a platform" ) << none << QStringList( { "-platformtheme", "gtk3" } ) << wl << x << true << xcb;
+		QTest::newRow( "-platformpluginpath is not a platform" ) << none << QStringList( { "-platformpluginpath", "/tmp" } ) << wl << x << true << xcb;
+		QTest::newRow( "-platformtheme=x is not a platform" ) << none << QStringList( "-platformtheme=gtk3" ) << wl << x << true << xcb;
+
+		// not a Wayland session, or no X server to go to, or no plugin: Qt keeps its own choice
+		QTest::newRow( "X11 session" ) << none << noArgs << none << x << true << none;
+		QTest::newRow( "Wayland without XWayland" ) << none << noArgs << wl << none << true << none;
+		QTest::newRow( "no xcb plugin installed" ) << none << noArgs << wl << x << false << none;
+		QTest::newRow( "no display at all" ) << none << noArgs << none << none << true << none;
+
+		// asked for already: left alone, whatever it is
+		QTest::newRow( "QT_QPA_PLATFORM=wayland" ) << QString( "wayland" ) << noArgs << wl << x << true << none;
+		QTest::newRow( "QT_QPA_PLATFORM=wayland-egl" ) << QString( "wayland-egl" ) << noArgs << wl << x << true << none;
+		QTest::newRow( "QT_QPA_PLATFORM=xcb" ) << xcb << noArgs << wl << x << true << none;
+		QTest::newRow( "-platform wayland" ) << none << QStringList( { "-platform", "wayland" } ) << wl << x << true << none;
+		QTest::newRow( "--platform wayland" ) << none << QStringList( { "--platform", "wayland" } ) << wl << x << true << none;
+		QTest::newRow( "-platform=wayland" ) << none << QStringList( "-platform=wayland" ) << wl << x << true << none;
+		QTest::newRow( "--platform=wayland" ) << none << QStringList( "--platform=wayland" ) << wl << x << true << none;
+		QTest::newRow( "-platform after a file name" ) << none << QStringList( { "/tmp/go.nif", "-platform", "offscreen" } ) << wl << x << true << none;
+
+		// no GUI, so no platform to choose
+		QTest::newRow( "-no-gui" ) << none << QStringList( "-no-gui" ) << wl << x << true << none;
+	}
+
+	//! preferredQpaPlatform(): the X11 plugin only in a Wayland session that can run it, and never over a choice that was made
+	void qpa_platform()
+	{
+		QFETCH( QString, qtQpaPlatform );
+		QFETCH( QStringList, arguments );
+		QFETCH( QString, waylandDisplay );
+		QFETCH( QString, x11Display );
+		QFETCH( bool, xcbInstalled );
+		QFETCH( QString, expected );
+
+		QCOMPARE( preferredQpaPlatform( qtQpaPlatform, arguments, waylandDisplay, x11Display, xcbInstalled ), expected );
+	}
+
+	//! xcbPlatformPluginInstalled() needs no QApplication, finds the plugin in QT_PLUGIN_PATH, and does not find one that is not there
+	void xcb_plugin_lookup()
+	{
+		QTemporaryDir empty, withPlugin;
+		QVERIFY( empty.isValid() && withPlugin.isValid() );
+		QVERIFY( QDir( withPlugin.path() ).mkpath( "platforms" ) );
+		QFile plugin( withPlugin.filePath( "platforms/libqxcb.so" ) );
+		QVERIFY( plugin.open( QIODevice::WriteOnly ) );
+		plugin.close();
+
+		const QByteArray saved = qgetenv( "QT_PLUGIN_PATH" );
+		const QByteArray sep( 1, QDir::listSeparator().toLatin1() );
+
+		qputenv( "QT_PLUGIN_PATH", withPlugin.path().toLocal8Bit() );
+		QVERIFY( xcbPlatformPluginInstalled() );
+
+		// one directory among several, the one with the plugin last
+		qputenv( "QT_PLUGIN_PATH", empty.path().toLocal8Bit() + sep + withPlugin.path().toLocal8Bit() );
+		QVERIFY( xcbPlatformPluginInstalled() );
+
+		// the directory has no platforms/libqxcb.so; the answer then depends on this machine's own Qt, so only that it is a bool
+		qputenv( "QT_PLUGIN_PATH", empty.path().toLocal8Bit() );
+		const bool fromOwnQt = xcbPlatformPluginInstalled();
+		qputenv( "QT_PLUGIN_PATH", QByteArray() );
+		QCOMPARE( xcbPlatformPluginInstalled(), fromOwnQt );
+
+		if ( saved.isNull() )
+			qunsetenv( "QT_PLUGIN_PATH" );
+		else
+			qputenv( "QT_PLUGIN_PATH", saved );
 	}
 };
 
