@@ -119,8 +119,8 @@ Qt was bundled, and a warm-up step absorbs the slow first start.
   when a Wayland session has an X display and the xcb plugin is installed, and nothing was asked for: `QT_QPA_PLATFORM`
   is not set and there is no `-platform` argument (`src/ui/qpaplatform.h`, 20 test results). Setting
   `QT_QPA_PLATFORM=wayland` brings the native plugin back. Found and checked by hand on one machine (CachyOS, distribution
-  Qt 5.15.19, GCC 16.2.1): with `QT_QPA_PLATFORM=xcb` the view draws. The automatic choice itself was only
-  compiled for Linux here, not run there when this was written.
+  Qt 5.15.19, GCC 16.2.1): without the variable the view draws, and with `QT_QPA_PLATFORM=wayland` it is
+  see-through again.
 
 ## Behaviour kept on purpose
 
