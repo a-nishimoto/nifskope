@@ -690,7 +690,7 @@ QWidget * NifSkope::filePathWidget( QWidget * parent )
 	filepathWidget->setVisible( false );
 
 	// Show Filepath on successful NIF load
-	connect( this, &NifSkope::completeLoading, [this, filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
+	connect( this, &NifSkope::completeLoading, [filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
 		filepathWidget->setVisible( success );
 		labelFilepath->setText( fname );
 
@@ -702,7 +702,7 @@ QWidget * NifSkope::filePathWidget( QWidget * parent )
 	} );
 
 	// Change Filepath on successful NIF save
-	connect( this, &NifSkope::completeSave, [this, filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
+	connect( this, &NifSkope::completeSave, [filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
 		filepathWidget->setVisible( success );
 		labelFilepath->setText( fname );
 
@@ -719,6 +719,8 @@ QWidget * NifSkope::filePathWidget( QWidget * parent )
 		QStringList args;
 		args << "/select," << QDir::toNativeSeparators( currentFile );
 		QProcess::startDetached( "explorer", args );
+#else
+		Q_UNUSED( this );
 #endif
 	} );
 

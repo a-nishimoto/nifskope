@@ -347,6 +347,8 @@ void BSShape::transformShapes()
 
 void BSShape::drawShapes( NodeList * secondPass, bool presort )
 {
+	Q_UNUSED( presort );
+
 	if ( isHidden() )
 		return;
 
@@ -441,9 +443,11 @@ void BSShape::drawShapes( NodeList * secondPass, bool presort )
 		case Scene::Level2:
 			if ( lod2tris.count() )
 				glDrawElements( GL_TRIANGLES, lod2tris.count() * 3, GL_UNSIGNED_SHORT, lod2tris.constData() );
+			Q_FALLTHROUGH();
 		case Scene::Level1:
 			if ( lod1tris.count() )
 				glDrawElements( GL_TRIANGLES, lod1tris.count() * 3, GL_UNSIGNED_SHORT, lod1tris.constData() );
+			Q_FALLTHROUGH();
 		case Scene::Level0:
 		default:
 			if ( lod0tris.count() )
@@ -623,7 +627,6 @@ void BSShape::drawSelection() const
 			for ( int i = 0; i < dataCt; i++ ) {
 				auto d = childIndex( data, i, 0 );
 
-				int numC = nif->get<int>( d, "Num Combined" );
 				auto c = nif->getIndex( d, "Combined" );
 				int cCt = nif->rowCount( c );
 
@@ -638,7 +641,6 @@ void BSShape::drawSelection() const
 			return;
 		}
 
-		Vector3 pTrans = nif->get<Vector3>( childIndex( pBlock, 1, 0 ), "Translation" );
 		auto iBSphere = nif->getIndex( pBlock, "Bounding Sphere" );
 		Vector3 pbvC = nif->get<Vector3>( childIndex( iBSphere, 0, 2 ) );
 		float pbvR = nif->get<float>( childIndex( iBSphere, 1, 2 ) );

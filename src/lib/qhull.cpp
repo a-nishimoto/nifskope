@@ -48,10 +48,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //	to no longer work as of msvc2013
 #else
 #pragma GCC diagnostic push
+#ifndef __clang__
+// GCC only: clang has no such warnings, and warns about the pragmas
 #pragma GCC diagnostic ignored "-Wclobbered"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 extern "C"
 {

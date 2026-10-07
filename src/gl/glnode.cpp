@@ -972,19 +972,15 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 					int end_vertex = 0;
 					int num_vertices = nif->get<int>( scene->currentIndex, "Num Vertices" );
 
-					int ct = nif->rowCount( iTris );
 					int totalVerts = 0;
 					if ( num_vertices > 0 ) {
 						QModelIndex iParent = scene->currentIndex.parent();
-						int rowCount = nif->rowCount( iParent );
 						for ( int j = 0; j < i; j++ ) {
 							totalVerts += nif->get<int>( childIndex( iParent, j, 0 ), "Num Vertices" );
 						}
 
 						end_vertex += totalVerts + num_vertices;
 						start_vertex += totalVerts;
-
-						ct = (end_vertex - start_vertex) / 3;
 					}
 
 					for ( int t = 0; t < nif->rowCount( iTris ); t++ ) {
@@ -1003,13 +999,11 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 			}
 			// Handle Selection of bhkPackedNiTriStripsShape
 			else if ( scene->currentBlock == iShape ) {
-				int i = -1;
 				QString n = scene->currentIndex.data( NifSkopeDisplayRole ).toString();
 				QModelIndex iParent = scene->currentIndex.parent();
 
 				if ( iParent.isValid() && iParent != iShape ) {
 					n = iParent.data( NifSkopeDisplayRole ).toString();
-					i = scene->currentIndex.row();
 				}
 
 				//qDebug() << n;

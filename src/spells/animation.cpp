@@ -225,6 +225,8 @@ public:
 
 	static QModelIndex attachController( NifModel * nif, const QPersistentModelIndex & iNode, const QString & ctrltype, bool fast = false )
 	{
+		Q_UNUSED( fast );
+
 		QModelIndex iCtrl = nif->insertNiBlock( ctrltype, nif->getBlockNumber( iNode ) + 1 );
 
 		if ( !iCtrl.isValid() )
@@ -304,7 +306,7 @@ REGISTER_SPELL( spAttachKf )
  * Also, since Quaternions can't store tangents (or can they?), quadratic
  * keys are out, leaving linear and tension-bias-continuity to be converted.
  */
-class spConvertQuatsToEulers final : public Spell
+class spConvertQuatsToEulers : public Spell
 {
 public:
 	QString name() const override final { return Spell::tr( "Convert Quat- to ZYX-Rotations" ); }
@@ -377,7 +379,6 @@ public:
 	QModelIndex cast( NifModel * nif, const QModelIndex & index ) override final
 	{
 		auto iHeader = nif->getHeader();
-		auto numStrings = nif->get<int>( iHeader, "Num Strings" );
 		auto strings = nif->getArray<QString>( iHeader, "Strings" );
 
 		auto numBlocks = nif->get<int>( iHeader, "Num Blocks" );

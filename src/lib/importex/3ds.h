@@ -479,7 +479,7 @@ private:
 
 		QMultiMap<ChunkType, Chunk *> temp;
 
-		while ( f->pos() < ( p + h.l ) ) {
+		while ( quint64( f->pos() ) < ( p + h.l ) ) {
 			ChunkPos q = f->pos();
 
 			ChunkHeader k;

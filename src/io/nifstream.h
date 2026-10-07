@@ -111,8 +111,6 @@ private:
 	bool linkAdjust = false;
 	//! Whether string adjustment is required.
 	bool stringAdjust = false;
-	//! Whether the model is big-endian
-	bool bigEndian = false;
 };
 
 

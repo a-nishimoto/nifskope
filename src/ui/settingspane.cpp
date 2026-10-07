@@ -139,7 +139,7 @@ void SettingsPane::readPane( QWidget * w, QSettings & settings )
 			tEmit->setInterval( 500 );
 			tEmit->setSingleShot( true );
 			connect( tEmit, &QTimer::timeout, this, &SettingsPane::modifyPane );
-			connect( edt, &QLineEdit::textEdited, [this, tEmit]() {
+			connect( edt, &QLineEdit::textEdited, [tEmit]() {
 				if ( tEmit->isActive() ) {
 					tEmit->stop();
 				}
@@ -266,7 +266,7 @@ SettingsGeneral::SettingsGeneral( QWidget * parent ) :
 
 	QRegularExpression fileRe( "NifSkope_(.*)\\.qm", QRegularExpression::CaseInsensitiveOption );
 
-	for ( const QString file : directory.entryList( QStringList( "NifSkope_*.qm" ), QDir::Files | QDir::NoSymLinks ) )
+	for ( const QString & file : directory.entryList( QStringList( "NifSkope_*.qm" ), QDir::Files | QDir::NoSymLinks ) )
 	{
 		QRegularExpressionMatch fileReMatch = fileRe.match( file );
 		if ( fileReMatch.hasMatch() ) {
@@ -592,7 +592,7 @@ void SettingsResources::write()
 
 	// Sync FSManager to Archives list
 	archiveMgr->archives.clear();
-	for ( const QString an : archives->stringList() ) {
+	for ( const QString & an : archives->stringList() ) {
 		if ( !archiveMgr->archives.contains( an ) )
 			if ( auto a = FSArchiveHandler::openArchive( an ) )
 				archiveMgr->archives.insert( an, a );

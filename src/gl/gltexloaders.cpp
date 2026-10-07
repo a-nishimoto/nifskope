@@ -625,13 +625,22 @@ GLuint texLoadBMP( QIODevice & f, QString & texformat, GLenum & target, GLuint &
 
 GLuint texLoadDDS( const QString & filepath, QString & format, GLenum & target, GLuint & width, GLuint & height, GLuint & mipmaps, QByteArray & data, GLuint & id )
 {
+	Q_UNUSED( format ); Q_UNUSED( width ); Q_UNUSED( height );
+
 	GLuint result = 0;
 	gli::texture texture;
 	if ( extStorageSupported ) {
 		texture = load_if_valid( data.constData(), data.size() );
 		if ( !texture.empty() )
 			result = GLI_create_texture( texture, target, id );
-	} else if ( glCompressedTexImage2D ) {
+	}
+#ifdef _WIN32
+	// a function pointer that may be null
+	else if ( glCompressedTexImage2D ) {
+#else
+	// a function of the GL library, its address is never null
+	else {
+#endif
 		texture = load_if_valid( data.constData(), data.size() );
 		if ( !texture.empty() )
 			result = GLI_create_texture_fallback( texture, target, id );
@@ -854,9 +863,16 @@ void initializeTextureLoaders( const QOpenGLContext * context )
 		glCompressedTexSubImage2D = (PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC)context->getProcAddress( "glCompressedTexSubImage2D" );
 		glCompressedTexImage2D = (PFNGLCOMPRESSEDTEXIMAGE2DPROC)context->getProcAddress( "glCompressedTexImage2D" );
 #endif
-#endif
-		if ( !glTexStorage2D || !glCompressedTexSubImage2D )
+		if ( !glTexStorage2D )
 			extStorageSupported = false;
+#ifdef _WIN32
+		// elsewhere it is a function of the GL library, its address is never null
+		if ( !glCompressedTexSubImage2D )
+			extStorageSupported = false;
+#endif
+#else
+		Q_UNUSED( context );
+#endif
 
 		extInitialized = true;
 	}

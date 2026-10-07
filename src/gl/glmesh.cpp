@@ -431,7 +431,7 @@ void Mesh::transform()
 					indices.reserve( totalIndices );
 				} else if ( compIdx == 1 ) {
 					// Indices should be built already
-					if ( indices.size() != totalIndices )
+					if ( quint32( indices.size() ) != totalIndices )
 						return;
 
 					quint32 maxSize = maxIndex + 1;
@@ -457,7 +457,7 @@ void Mesh::transform()
 					datastreamFormats.append( NiMesh::DataStreamFormat(format) );
 				}
 
-				Q_ASSERT( compSemanticIndexMaps[i].size() == numStreamComponents );
+				Q_ASSERT( quint32( compSemanticIndexMaps[i].size() ) == numStreamComponents );
 
 				auto tempMdl = std::make_unique<NifModel>( this );
 
@@ -475,7 +475,6 @@ void Mesh::transform()
 					for ( uint k = 0; k < numStreamComponents; k++ ) {
 						auto typeK = datastreamFormats[k];
 						int typeLength = ( (typeK & 0x000F0000) >> 0x10 );
-						int typeSize = ( (typeK & 0x00000F00) >> 0x08 );
 
 						switch ( (typeK & 0x00000FF0) >> 0x04 ) {
 						case 0x10:
@@ -578,7 +577,7 @@ void Mesh::transform()
 							Q_ASSERT( usage == NiMesh::USAGE_VERTEX );
 							if ( compType == NiMesh::E_TEXCOORD ) {
 								quint32 coordSet = compSemanticIndexMaps[i].value( k ).second;
-								Q_ASSERT( coords.size() > coordSet );
+								Q_ASSERT( quint32( coords.size() ) > coordSet );
 								coords[coordSet][j + off] = tempValue.get<Vector2>();
 							}
 							break;
@@ -594,7 +593,8 @@ void Mesh::transform()
 							Q_ASSERT( usage == NiMesh::USAGE_VERTEX );
 							if ( compType == NiMesh::E_COLOR ) {
 								// Swizzle BGRA -> RGBA
-								auto c = tempValue.get<ByteColor4>().data();
+								auto bgra = tempValue.get<ByteColor4>();
+								auto c = bgra.data();
 								colors[j + off] = {c[2], c[1], c[0], c[3]};
 							}
 							break;
@@ -628,8 +628,8 @@ void Mesh::transform()
 			if ( !(semFlags & NiMesh::HAS_BLENDINDICES) || !(semFlags & NiMesh::HAS_BLENDWEIGHT) )
 				weights.clear();
 
-			Q_ASSERT( verts.size() == maxIndex + 1 );
-			Q_ASSERT( indices.size() == totalIndices );
+			Q_ASSERT( quint32( verts.size() ) == maxIndex + 1 );
+			Q_ASSERT( quint32( indices.size() ) == totalIndices );
 
 			// Make geometry
 			triangles.resize( indices.size() / 3 );
@@ -1096,9 +1096,11 @@ void Mesh::drawShapes( NodeList * secondPass, bool presort )
 		case Scene::Level2:
 			if ( lod2tris.count() )
 				glDrawElements( GL_TRIANGLES, lod2tris.count() * 3, GL_UNSIGNED_SHORT, lod2tris.constData() );
+			Q_FALLTHROUGH();
 		case Scene::Level1:
 			if ( lod1tris.count() )
 				glDrawElements( GL_TRIANGLES, lod1tris.count() * 3, GL_UNSIGNED_SHORT, lod1tris.constData() );
+			Q_FALLTHROUGH();
 		case Scene::Level0:
 		default:
 			if ( lod0tris.count() )

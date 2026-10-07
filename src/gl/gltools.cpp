@@ -957,12 +957,7 @@ void drawCMS( const NifModel * nif, const QModelIndex & iShape, bool solid )
 
 			QVector<Vector4> vertices( numOffsets / 3 );
 
-			int numStripVerts = 0;
 			int offset = 0;
-
-			for ( int v = 0; v < (int)numStrips; v++ ) {
-				numStripVerts += strips[v];
-			}
 
 			for ( int n = 0; n < ((int)numOffsets / 3); n++ ) {
 				vertices[n] = chunkOrigin + chunkTranslation + Vector4( offsets[3 * n], offsets[3 * n + 1], offsets[3 * n + 2], 0 ) / 1000.0f;

@@ -1084,7 +1084,7 @@ void NifModel::insertType( NifItem * parent, const NifData & data, int at )
 	setState( Inserting );
 
 	if ( data.isArray() ) {
-		NifItem * item = insertBranch( parent, data, at );
+		insertBranch( parent, data, at );
 	} else if ( data.isCompound() ) {
 		NifBlockPtr compound = compounds.value( data.type() );
 		if ( !compound )
@@ -2811,7 +2811,6 @@ QString NifModel::string( const QModelIndex & index, bool extraInfo ) const
 		return BaseModel::get<QString>( index );
 
 	if ( getVersionNumber() >= 0x14010003 ) {
-		QModelIndex iIndex;
 		int idx = -1;
 
 		if ( v.type() == NifValue::tStringIndex )

@@ -51,19 +51,13 @@ class spStrippify final : public Spell
 		if ( !iTriangles.isValid() )
 			return idx;
 
-		int skip = 0;
-
 		for ( int t = 0; t < nif->rowCount( iTriangles ); t++ ) {
 			Triangle tri = nif->get<Triangle>( childIndex( iTriangles, t, 0 ) );
 
+			// degenerate triangles are dropped
 			if ( tri[0] != tri[1] && tri[1] != tri[2] && tri[2] != tri[0] )
 				triangles.append( tri );
-			else
-				skip++;
 		}
-
-		//qDebug() << "num triangles" << triangles.count() << "skipped" << skip;
-
 
 		QVector<QVector<quint16> > strips = stripify( triangles, true );
 
@@ -362,7 +356,7 @@ public:
 	QString name() const override final { return Spell::tr( "Triangulate All Strips" ); }
 	QString page() const override final { return Spell::tr( "Batch" ); }
 
-	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
+	bool isApplicable( const NifModel *, const QModelIndex & index ) override final
 	{
 		return !index.isValid();
 	}

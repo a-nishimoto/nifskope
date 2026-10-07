@@ -81,7 +81,7 @@ UnsignedValidator::UnsignedValidator( QObject * parent )
 {
 }
 
-QValidator::State UnsignedValidator::validate( QString & input, int & pos ) const
+QValidator::State UnsignedValidator::validate( QString & input, int & ) const
 {
 	if ( input.trimmed().isEmpty() || input.trimmed() == QLatin1String( "0x" ) )
 		return Intermediate;

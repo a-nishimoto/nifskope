@@ -156,7 +156,7 @@ class spExportBinary final : public Spell
 public:
 	QString name() const override final { return Spell::tr( "Export Binary" ); }
 
-	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
+	bool isApplicable( const NifModel *, const QModelIndex & index ) override final
 	{
 		NifItem * item = static_cast<NifItem *>(index.internalPointer());
 
@@ -204,7 +204,7 @@ class spImportBinary final : public Spell
 public:
 	QString name() const override final { return Spell::tr( "Import Binary" ); }
 
-	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
+	bool isApplicable( const NifModel *, const QModelIndex & index ) override final
 	{
 		NifItem * item = static_cast<NifItem *>(index.internalPointer());
 

@@ -262,6 +262,7 @@ public:
 			if ( x != tagAdd )
 				err( tr( "only add tags allowed in compound type declaration" ) );
 
+			Q_FALLTHROUGH();
 		case tagBlock:
 			push( x );
 
@@ -439,6 +440,7 @@ public:
 			else if ( !typId.isEmpty() && !typTxt.isEmpty() )
 				NifValue::setTypeDescription( typId, typTxt );
 
+			Q_FALLTHROUGH();
 		case tagBlock:
 			if ( blk ) {
 				if ( blk->id.isEmpty() ) {

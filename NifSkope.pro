@@ -460,6 +460,9 @@ unix:!macx {
 
 macx {
 	LIBS += -framework CoreFoundation
+
+	# Apple deprecated OpenGL (glu*() in macOS 10.9, the rest in 10.14): the CMake build defines this as well
+	DEFINES += GL_SILENCE_DEPRECATION
 }
 
 

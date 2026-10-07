@@ -319,6 +319,7 @@ bool MultiTargetTransformController::update( const NifModel * nif, const QModelI
 	}
 
 	for ( const TransformTarget& tt : extraTargets ) {
+		Q_UNUSED( tt );
 		// TODO: update the interpolators
 	}
 
@@ -536,7 +537,7 @@ bool UVController::update( const NifModel * nif, const QModelIndex & index )
 
 float random( float r )
 {
-	return r * rand() / RAND_MAX;
+	return r * rand() / float( RAND_MAX );
 }
 
 Vector3 random( Vector3 v )

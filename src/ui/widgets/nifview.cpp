@@ -105,7 +105,7 @@ void NifTreeView::setRowHiding( bool show )
 }
 
 
-bool NifTreeView::isRowHidden( int r, const QModelIndex & index ) const
+bool NifTreeView::isRowHidden( int, const QModelIndex & index ) const
 {
 	NifItem * item = static_cast<NifItem *>(index.internalPointer());
 	if ( !item || !doRowHiding )
@@ -260,7 +260,7 @@ void NifTreeView::pasteArray()
 
 	ChangeValueCommand::createTransaction();
 	nif->setState( BaseModel::Processing );
-	for ( int i = 0; i < cnt && i < valueClipboard->getValues().size(); i++ ) {
+	for ( int i = 0; i < cnt && size_t( i ) < valueClipboard->getValues().size(); i++ ) {
 		auto iDest = childIndex( root, i, NifModel::ValueCol );
 		auto srcValue = valueClipboard->getValues().at( iDest.row() );
 

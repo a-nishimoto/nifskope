@@ -783,6 +783,8 @@ bool NifValue::setFromString( const QString & s )
 			return true;
 		}
 
+		// anything else is a number, as for tByte
+		Q_FALLTHROUGH();
 	case tByte:
 		val.u32 = 0;
 		val.u08 = s.toUInt( &ok, 0 );

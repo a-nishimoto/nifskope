@@ -369,7 +369,7 @@ public:
 
 			int minBones, maxBones;
 			minBones = maxBones = weights.value( 0 ).count();
-			for ( const QList<boneweight> list : weights ) {
+			for ( const QList<boneweight> & list : weights ) {
 				if ( list.count() < minBones )
 					minBones = list.count();
 

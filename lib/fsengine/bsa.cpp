@@ -114,6 +114,7 @@ QByteArray gUncompress( const QByteArray & data, const int size )
 		switch ( ret ) {
 		case Z_NEED_DICT:
 			ret = Z_DATA_ERROR;     // and fall through
+			Q_FALLTHROUGH();
 		case Z_DATA_ERROR:
 		case Z_MEM_ERROR:
 			(void)inflateEnd( &strm );
@@ -347,7 +348,7 @@ bool BSA::open()
 				quint32 fcnt = folderInfo.fileCount;
 				totalFileCount += fcnt;
 				QVector<OBBSAFileInfo> fileInfos( fcnt );
-				if ( bsa.read( (char *) fileInfos.data(), fcnt * sizeof( OBBSAFileInfo ) ) != fcnt * sizeof( OBBSAFileInfo ) )
+				if ( bsa.read( (char *) fileInfos.data(), fcnt * sizeof( OBBSAFileInfo ) ) != qint64( fcnt * sizeof( OBBSAFileInfo ) ) )
 					throw QString( "file info read" );
 				
 				for ( const OBBSAFileInfo fileInfo : fileInfos )
@@ -381,12 +382,12 @@ bool BSA::open()
 			
 			// file size/offset table
 			QVector<MWBSAFileSizeOffset> sizeOffset( header.FileCount );
-			if ( bsa.read( (char *) sizeOffset.data(), header.FileCount * sizeof( MWBSAFileSizeOffset ) ) != header.FileCount * sizeof( MWBSAFileSizeOffset ) )
+			if ( bsa.read( (char *) sizeOffset.data(), header.FileCount * sizeof( MWBSAFileSizeOffset ) ) != qint64( header.FileCount * sizeof( MWBSAFileSizeOffset ) ) )
 				throw QString( "file size/offset" );
 			
 			// filename offset table
 			QVector<quint32> nameOffset( header.FileCount );
-			if ( bsa.read( (char *) nameOffset.data(), header.FileCount * sizeof( quint32 ) ) != header.FileCount * sizeof( quint32 ) )
+			if ( bsa.read( (char *) nameOffset.data(), header.FileCount * sizeof( quint32 ) ) != qint64( header.FileCount * sizeof( quint32 ) ) )
 				throw QString( "file name offset" );
 			
 			// filenames. size is given by ( HashOffset - ( 8 * number of file/size offsets) - ( 4 * number of filenames) )
@@ -599,7 +600,6 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 					char dds[sizeof( ddsHeader )];
 					memcpy( dds, &ddsHeader, sizeof( ddsHeader ) );
 
-					int texSize = 0; // = file->unpackedLength;
 					int hdrSize = sizeof( ddsHeader ) + 4;
 
 					content.clear();
@@ -629,16 +629,14 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 								if ( bsa.read( chunkData.data(), chunk.packedSize ) == chunk.packedSize ) {
 									chunkData = gUncompress( chunkData, chunk.packedSize );
 
-									if ( chunkData.size() != chunk.unpackedSize )
+									if ( chunkData.size() != int( chunk.unpackedSize ) )
 										qCritical() << "Size does not match at " << chunk.offset;
 								}
 							} else if ( !(bsa.read( chunkData.data(), chunk.unpackedSize ) == chunk.unpackedSize) ) {
 								qCritical() << "Size does not match at " << chunk.offset;
 							}
-							texSize += chunk.unpackedSize;
 
 							content.append( chunkData );
-							//Q_ASSERT( content.size() - hdrSize == texSize );
 						} else {
 							qCritical() << "Seek error";
 						}
