@@ -46,6 +46,12 @@ trailer.
   macOS bundle has an icon and carries `nif.xml`, the shaders and the other data files in `Contents/Resources`, with
   symbolic links in `Contents/MacOS`, which is where the program looks (a qmake bundle keeps them beside the `.app`,
   where it cannot find them).
+* **Packaging that nothing used is removed:** `install/win-install/` (NSIS installer and `makeexe` scripts for MinGW and
+  MSVC builds with Qt 4 era tools, version 1.1.1 written into them), `install/linux-install/nifskope.spec.in` and
+  `maketarball.sh` (RPM packaging for Qt 4) and `build/makeconfig.sh` (it generated the spec, a Doxyfile and a
+  `README.txt`, two of them from paths that no longer exist). Nothing referenced them. `install/linux-install/` keeps
+  the desktop file and the three MIME files, which `cmake --install` puts in place on Linux. A Windows build is
+  `cmake --install` with `windeployqt` into a folder; there is no installer.
 
 ## Tests
 
