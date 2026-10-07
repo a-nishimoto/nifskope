@@ -126,6 +126,13 @@ Qt was bundled, and a warm-up step absorbs the slow first start.
   `QT_QPA_PLATFORM=wayland` brings the native plugin back. Found and checked by hand on one machine (CachyOS, distribution
   Qt 5.15.19, GCC 16.2.1): without the variable the view draws, and with `QT_QPA_PLATFORM=wayland` it is
   see-through again.
+* The Linux files in `install/linux-install/` did not work (the same in the original). `update-mime-database` rejected
+  the three MIME files, whose root element was `<mime-type>` and not `<mime-info>`, so `.nif`, `.kf` and `.kfm` were
+  never registered as types; and the desktop entry's `Exec=nifskope` had no file argument, so opening a file from a
+  file manager started the program empty. The MIME files are wrapped in `<mime-info>` now, and the desktop entry is
+  `Exec=nifskope %F`, with `Version=1.0` and without the deprecated `Encoding`. Checked with `update-mime-database` (the
+  three types are built, with `*.nif`, `*.kf` and `*.kfm`, and no clash with the types of freedesktop's own list) and
+  `desktop-file-validate` (no warnings); not tried in a Linux file manager, and no test covers these files.
 
 ## Behaviour kept on purpose
 

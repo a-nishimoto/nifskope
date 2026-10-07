@@ -149,6 +149,11 @@ On Linux under a Wayland session the program starts with Qt's X11 platform plugi
 Qt 5's native Wayland plugin. That needs the xcb plugin and an X display; without them Qt chooses as usual.
 `QT_QPA_PLATFORM=wayland` brings the native plugin back.
 
+The desktop entry and the MIME types (`share/applications`, `share/mime/packages`) only count where the desktop looks for
+them: a prefix of your own needs its `share/` directory in `XDG_DATA_DIRS`, and `update-mime-database <prefix>/share/mime`
+and `update-desktop-database <prefix>/share/applications` have to be run on it. The entry starts `nifskope` from the
+`PATH`, so `bin/` has to be on it as well.
+
 A headless run of the installed copy, as the Linux CI job does: `QT_QPA_PLATFORM=offscreen
 <install>/lib/nifskope/nifskope --version`. Qt 5.15's `macdeployqt` deploys the `cocoa` platform plugin only, so an
 installed macOS bundle cannot start with `offscreen`: run it with the default platform, as the macOS CI job does (it also
