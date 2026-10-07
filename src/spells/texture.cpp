@@ -1087,6 +1087,7 @@ void TexFlipDialog::textureAction( int i )
 		if ( idx.isValid() ) {
 			listmodel->removeRow( idx.row(), QModelIndex() );
 		}
+		break;
 
 	case 2:
 
