@@ -450,7 +450,7 @@ win32 {
 }
 
 win32 {
-    # GL libs for Qt 5.5+
+    # OpenGL and GLU
     LIBS += -lopengl32 -lglu32
 }
 

@@ -36,8 +36,9 @@ A full build takes a few seconds and the whole suite runs in about a second.
 GitHub Actions (`.github/workflows/ci.yml`) runs the suite with Qt 5.15.2 for every pull request and every push to
 `develop` and `master`:
 
-* The `cmake` job builds with CMake on Linux (GCC), Windows (MSVC x64) and macOS: it configures with a `ci-*` preset,
-  builds, runs `ctest` and installs. The JUnit XML of the CTest run is attached as `test-results-<id>`
+* The `cmake` job builds with CMake on Linux (GCC), Windows (MSVC x64) and macOS: it configures with a `ci-*` preset
+  (which also sets `NIFSKOPE_WERROR_DEPRECATED=ON`, so a deprecated declaration in the tests or in NifSkope's own code
+  fails the build), builds, runs `ctest` and installs. The JUnit XML of the CTest run is attached as `test-results-<id>`
   (`test-results-cmake-linux`, `test-results-cmake-windows-x64`, `test-results-cmake-macos`); the install trees are
   attached as `nifskope-<id>`.
 * The `qmake-legacy` job builds this suite with `tests.pro` and runs it, on Linux only. The text output is attached as
@@ -79,6 +80,7 @@ invocation. Plain text on the console works for the whole suite.
 | --- | --- |
 | `CONFIG+=no_zlib` | Leave out the zlib/BSA test (`tst_zlib.cpp`) and the code it needs (`lib/zlib`, `lib/fsengine/bsa.cpp`, lz4, xxhash) |
 | `NIFSKOPE_ROOT=<dir>` | Take the sources and the XML files from another checkout (default: the parent of `tests/`) |
+| `NIFSKOPE_CXX_STANDARD=<14\|17\|20>`, `NIFSKOPE_QT_DEPRECATED_BEFORE=<0x...>` | The C++ standard (default 20) and `QT_DISABLE_DEPRECATED_BEFORE` (default `0x051500`, Qt 5.15): the same switches, the same defaults and the same file (`NifSkope_settings.pri`) as `NifSkope.pro`, so the tests compile the shared sources the way the application does |
 
 ## Build with CMake
 
@@ -118,6 +120,8 @@ ctest --test-dir nifskope-build --output-on-failure
 | `-DNIFSKOPE_BUILD_BSA_TEST=OFF` | Leave out the zlib/BSA test (`tst_zlib.cpp`) and the code it needs, like `CONFIG+=no_zlib`. Then `lib/zlib` is not needed either |
 | `-DNIFSKOPE_USE_SYSTEM_ZLIB=ON` | Test against a system or vcpkg zlib (at least 1.3.2) instead of `lib/zlib`; `tst_Zlib` compares the header with the library it links |
 | `-DNIFSKOPE_BUILD_TESTS=OFF` | No tests (the default when NifSkope is added as a subproject) |
+| `-DNIFSKOPE_CXX_STANDARD=17`, `-DNIFSKOPE_QT_DEPRECATED_BEFORE=0x050300` | The C++ standard (default 20) and `QT_DISABLE_DEPRECATED_BEFORE` (default `0x051500`, Qt 5.15) of the tests and of the code under test; the application is built the same way |
+| `-DNIFSKOPE_WERROR_DEPRECATED=ON` | A use of a deprecated declaration is an error, in the tests and in NifSkope's own code (the `ci-*` presets turn it on) |
 
 ## What is covered
 

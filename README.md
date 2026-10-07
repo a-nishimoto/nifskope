@@ -29,7 +29,7 @@ For information about development:
 
 - Visit our [Discord #dev channel](https://discord.gg/zvWZrrJ).
 - Visit the NifTools.org [development subforum](https://forum.niftools.org/6-nifskope-development/).
-- See [BUILDING.md](https://github.com/niftools/nifskope/blob/develop/BUILDING.md) for building with CMake (qmake still works, see the end of that file).
+- See [BUILDING.md](https://github.com/niftools/nifskope/blob/develop/BUILDING.md) for building with CMake (qmake still works, see the end of that file). NifSkope needs Qt 5.15 (Qt 6 is not supported yet) and a C++20 compiler: GCC 10, Clang 10, Apple clang 12 or MSVC 2019 16.11, or later.
 - Refer to our [GitHub wiki](https://github.com/niftools/nifskope/wiki#wiki-development) for information on compilation.  
 
 
