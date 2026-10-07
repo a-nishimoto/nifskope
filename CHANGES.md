@@ -107,6 +107,11 @@ Qt was bundled, and a warm-up step absorbs the slow first start.
   the last row blanked the new last entry.
 * `Mesh::transform()` read the bytes of a `ByteColor4` through a pointer into a temporary that was gone at the end of
   the statement (undefined behaviour); the colour is a named local now.
+* The status bar's size grip asked its stylesheet for `:/img/sizeGrip`, but the icon is registered as `:/wnd/sizeGrip`
+  (the same in the original): Qt printed `Could not create pixmap from :/img/sizeGrip` 17 times at start-up and the grip
+  image was never drawn. The path is right now (`src/ui/nifskope.ui`) and the warning is gone in a run of the macOS
+  build (the grip itself was not looked at). A scan of the other `:/` references in the sources found no other that
+  is not registered.
 * The four Fallout 4 shaders (`fo4_default` and `fo4_effectshader`, vertex and fragment) declared `#version 130`, which
   the OpenGL 2.1 context that macOS provides (GLSL 1.20) rejects, so on a Mac the two Fallout 4 programs were never
   created. They are GLSL 1.20 now, like the Skyrim ones: `in` and `out` became `varying`, `textureLod` became
