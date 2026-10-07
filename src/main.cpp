@@ -35,6 +35,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/nifvalue.h"
 #include "model/nifmodel.h"
 #include "model/kfmmodel.h"
+#include "ui/qpaplatform.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -66,6 +67,21 @@ QCoreApplication * createApplication( int &argc, char *argv[] )
 //! The main program
 int main( int argc, char * argv[] )
 {
+#ifdef Q_OS_LINUX
+	// Qt 5's QGLWidget draws nothing under native Wayland: use X11 (XWayland) there unless told otherwise (qpaplatform.h)
+	{
+		QStringList args;
+		for ( int i = 1; i < argc; ++i )
+			args << QString::fromLocal8Bit( argv[i] );
+
+		const QString platform = preferredQpaPlatform( qEnvironmentVariable( "QT_QPA_PLATFORM" ), args,
+		                                               qEnvironmentVariable( "WAYLAND_DISPLAY" ), qEnvironmentVariable( "DISPLAY" ),
+		                                               xcbPlatformPluginInstalled() );
+		if ( !platform.isEmpty() )
+			qputenv( "QT_QPA_PLATFORM", platform.toLocal8Bit() );
+	}
+#endif
+
 	QScopedPointer<QCoreApplication> app( createApplication( argc, argv ) );
 
 	if ( auto a = qobject_cast<QApplication *>(app.data()) ) {

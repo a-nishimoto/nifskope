@@ -144,6 +144,11 @@ distribution layout, `bin/` and `share/nifskope/`, which works for the prefix `/
 (`shaders/*.dds`) are only looked up beside the executable, so that layout still lacks them. Both are limits of the
 program, not of the build system.
 
+On Linux under a Wayland session the program starts with Qt's X11 platform plugin (through XWayland), unless
+`QT_QPA_PLATFORM` or a `-platform` argument says otherwise: the 3D view is a `QGLWidget`, which draws nothing under
+Qt 5's native Wayland plugin. That needs the xcb plugin and an X display; without them Qt chooses as usual.
+`QT_QPA_PLATFORM=wayland` brings the native plugin back.
+
 A headless run of the installed copy, as the Linux CI job does: `QT_QPA_PLATFORM=offscreen
 <install>/lib/nifskope/nifskope --version`. Qt 5.15's `macdeployqt` deploys the `cocoa` platform plugin only, so an
 installed macOS bundle cannot start with `offscreen`: run it with the default platform, as the macOS CI job does (it also

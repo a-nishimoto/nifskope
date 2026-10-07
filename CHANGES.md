@@ -19,7 +19,7 @@ trailer.
 | Build system | qmake | CMake, with qmake kept working |
 | Qt and C++ | Qt 5.7 or later, C++14 | Qt 5.15 (Qt 6 is refused for now), C++20 (C++17 can be selected) |
 | zlib | 1.2.8 | 1.3.2 |
-| Tests | none | 11 Qt Test classes, 2,854 passing results (73 of them expected failures that record known defects) |
+| Tests | none | 11 Qt Test classes, 2,874 passing results (73 of them expected failures that record known defects) |
 | CI | Travis (Linux and macOS, Ubuntu trusty) and AppVeyor (Visual Studio 2015) configurations | GitHub Actions: Linux, macOS and Windows |
 | Deprecated Qt API in use | more than 400 places (388 of them calls of `QModelIndex::child()`) | none: what Qt 5.15 deprecates is no longer available to the build |
 
@@ -114,6 +114,13 @@ Qt was bundled, and a warm-up step absorbs the slow first start.
   On an Apple M5 (GL 2.1 Metal, GLSL 1.20) all 11 shaders compile and all 6 programs link, where before the four
   Fallout 4 shaders failed; that was checked with a throwaway program that is not kept. Drawing a Fallout 4 mesh was
   not looked at, and Linux and Windows drivers were not tried.
+* On Linux under a Wayland session the 3D view stayed see-through: it is a `QGLWidget`, which Qt 5's native Wayland
+  platform plugin does not draw inside a `QGraphicsView`. The program now asks for Qt's X11 plugin (through XWayland)
+  when a Wayland session has an X display and the xcb plugin is installed, and nothing was asked for: `QT_QPA_PLATFORM`
+  is not set and there is no `-platform` argument (`src/ui/qpaplatform.h`, 20 test results). Setting
+  `QT_QPA_PLATFORM=wayland` brings the native plugin back. Found and checked by hand on one machine (CachyOS, distribution
+  Qt 5.15.19, GCC 16.2.1): without the variable the view draws, and with `QT_QPA_PLATFORM=wayland` it is
+  see-through again.
 
 ## Behaviour kept on purpose
 
@@ -142,10 +149,18 @@ below 131072 into NaN; the first character of the right operand of an expression
 `Matrix::toEuler()` has the wrong sign at -90 degrees of pitch. UBSan also reports undefined behaviour (as of the merge of PR #2) in
 `lib/half.cpp` (lines 109 and 273) and `src/data/niftypes.h` (line 1751).
 
+The macOS app that CI builds (x86_64, Qt 5.15.2, run under Rosetta) crashes when its window is closed after a NIF was
+opened: `Renderer::Program::~Program()` calls through the `QOpenGLFunctions` that `~GLView` was given, and that object is
+already freed (it is freed while the windows close, before the view's destructor runs). Reproduced under lldb on that
+artifact with only open and close. The same steps in a native arm64 build with Qt 5.15.19 do not crash. The teardown code
+is the same as in the fork's base; why Qt 5.15.2 frees the object early was not found. Building natively, or replacing
+`QGLWidget` with `QOpenGLWidget`, are the ways round it; neither is done.
+
 ## Not done, and not verified
 
-* The program has only been run headless. Rendering and the user interface were never looked at on a real display in
-  this work. The OpenGL rendering approach is unchanged, legacy OpenGL 2.1 (only mechanical edits touched `src/gl`).
+* Rendering and the user interface were looked at by hand with one file, a Skyrim SE NIF, in a native arm64 macOS build
+  (Homebrew Qt 5.15.19) and on Linux (X11 through XWayland); not on Windows, and not with a Fallout 4 file. The OpenGL
+  rendering approach is unchanged, legacy OpenGL 2.1 (only mechanical edits touched `src/gl`).
   The Fallout 4 shaders did not even compile on macOS until they were ported to GLSL 1.20 (see above), and whether they
   draw correctly there is not known.
 * Windows is verified only by the CI runs; no Windows machine was used. There is no native x86_64 macOS or Linux arm64
