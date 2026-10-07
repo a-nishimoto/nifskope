@@ -8,8 +8,8 @@ project (`NifSkope.pro`) is kept as the reference build, see [qmake](#qmake) at 
 * **Qt 5.15** (an older Qt is refused, and so is Qt 6 until the sources are ported, see [Qt](#qt)).
 * **CMake 3.22 or later** and a build tool. The presets use Ninja, except `vs2022`, which uses Visual Studio 2022.
 * A C++20 compiler: GCC 10 or later, Clang 10 or later, Apple clang 12 (Xcode 12) or later, or MSVC from Visual Studio
-  2019 16.11 or later. CMake and qmake stop with a message on an older one; `NIFSKOPE_CXX_STANDARD=17` or `14` (see
-  [Options](#options)) selects an older language level instead.
+  2019 16.11 or later. CMake and qmake stop with a message on an older one; `NIFSKOPE_CXX_STANDARD=17` (see
+  [Options](#options)) selects C++17 instead. C++14 is not supported: the sources use `std::as_const`.
 * The submodules, which hold the XML description (`nif.xml`, `kfm.xml`) and the vendored libraries:
   `git submodule update --init --recursive`
 * Linux: the OpenGL and GLU development packages, `libgl1-mesa-dev libglu1-mesa-dev` on Debian and Ubuntu. A missing
@@ -74,7 +74,7 @@ the CMake build writes its `README.txt` into `<build>/generated`.
 | `NIFSKOPE_REVISION_OVERRIDE` | empty | Revision shown in About. Empty: the first 7 digits of `git rev-parse HEAD`, or none outside a git checkout |
 | `NIFSKOPE_ALLOW_QT6` | OFF | Continue with Qt 6 for porting work |
 | `NIFSKOPE_KEEP_NDEBUG` | OFF | Keep CMake's `-DNDEBUG` in the Release flags. Off, `assert()` stays live as it does in the qmake build |
-| `NIFSKOPE_CXX_STANDARD` | 20 | The C++ standard NifSkope's own code is compiled as: 14, 17 or 20 (17 with Qt 6). A cache variable, so `-D` and the `cacheVariables` of a preset set it (qmake: `NIFSKOPE_CXX_STANDARD=17`). 23 is not supported yet |
+| `NIFSKOPE_CXX_STANDARD` | 20 | The C++ standard NifSkope's own code is compiled as: 17 or 20 (17 with Qt 6). A cache variable, so `-D` and the `cacheVariables` of a preset set it (qmake: `NIFSKOPE_CXX_STANDARD=17`). 14 is not supported (the sources use `std::as_const`), and neither is 23 yet |
 | `NIFSKOPE_QT_DEPRECATED_BEFORE` | `0x051500` | Value of `QT_DISABLE_DEPRECATED_BEFORE`: Qt API deprecated before this hexadecimal Qt version no longer compiles. The default is the minimum Qt, so the sources use nothing that Qt 5.15 deprecated; `0x050300` (Qt 5.3) declares the deprecated API again (qmake: `NIFSKOPE_QT_DEPRECATED_BEFORE=0x050300`) |
 | `NIFSKOPE_WERROR_DEPRECATED` | OFF | Make the use of a deprecated declaration an error in NifSkope's own code: `-Werror=deprecated-declarations` (`/we4996` with MSVC), for NifSkope's own targets only, not for the vendored libraries that are targets of their own (zlib, lz4, NvTriStrip). The `ci-*` presets turn it on, so a deprecated call stops the CI build; a newer compiler or C++ library deprecates more than the ones CI uses, which is why the default is OFF. There is no qmake counterpart: qmake compiles the vendored sources with the same flags |
 

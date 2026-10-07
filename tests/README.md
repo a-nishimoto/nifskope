@@ -80,7 +80,7 @@ invocation. Plain text on the console works for the whole suite.
 | --- | --- |
 | `CONFIG+=no_zlib` | Leave out the zlib/BSA test (`tst_zlib.cpp`) and the code it needs (`lib/zlib`, `lib/fsengine/bsa.cpp`, lz4, xxhash) |
 | `NIFSKOPE_ROOT=<dir>` | Take the sources and the XML files from another checkout (default: the parent of `tests/`) |
-| `NIFSKOPE_CXX_STANDARD=<14\|17\|20>`, `NIFSKOPE_QT_DEPRECATED_BEFORE=<0x...>` | The C++ standard (default 20) and `QT_DISABLE_DEPRECATED_BEFORE` (default `0x051500`, Qt 5.15): the same switches, the same defaults and the same file (`NifSkope_settings.pri`) as `NifSkope.pro`, so the tests compile the shared sources the way the application does |
+| `NIFSKOPE_CXX_STANDARD=<17\|20>`, `NIFSKOPE_QT_DEPRECATED_BEFORE=<0x...>` | The C++ standard (default 20) and `QT_DISABLE_DEPRECATED_BEFORE` (default `0x051500`, Qt 5.15): the same switches, the same defaults and the same file (`NifSkope_settings.pri`) as `NifSkope.pro`, so the tests compile the shared sources the way the application does |
 
 ## Build with CMake
 

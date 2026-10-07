@@ -14,14 +14,13 @@ contains(QT_VERSION, ^5\\.([0-9]|1[0-4])\\..*) {
 	error("Minimum required version is Qt 5.15")
 }
 
-# C++ standard: 14, 17 or 20
+# C++ standard: 17 or 20. Not 14: std::as_const, which the range-for loops over Qt containers use, is C++17
 isEmpty(NIFSKOPE_CXX_STANDARD): NIFSKOPE_CXX_STANDARD = 20
 
 # Qt 5's qmake spells C++17 "c++1z" and C++20 "c++2a" (there is no "c++20"), with GNU extensions on
-equals(NIFSKOPE_CXX_STANDARD, 14): CONFIG += c++14
-else: equals(NIFSKOPE_CXX_STANDARD, 17): CONFIG += c++1z
+equals(NIFSKOPE_CXX_STANDARD, 17): CONFIG += c++1z
 else: equals(NIFSKOPE_CXX_STANDARD, 20): CONFIG += c++2a
-else: error("NIFSKOPE_CXX_STANDARD is $${NIFSKOPE_CXX_STANDARD}: use 14, 17 or 20")
+else: error("NIFSKOPE_CXX_STANDARD is $${NIFSKOPE_CXX_STANDARD}: use 17 or 20")
 
 # C++20 needs a compiler that has it: GCC 10, Clang 10, Apple clang 12, MSVC 2019 16.11 (cl 19.29.30129, the first
 # with /std:c++20). BUILDING.md lists the same

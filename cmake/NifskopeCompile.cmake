@@ -8,10 +8,10 @@
 #                             With NIFSKOPE_WERROR_DEPRECATED a deprecated declaration is an error as well,
 #                             in first-party code only for the same reason
 
-# NIFSKOPE_CXX_STANDARD (cmake/NifskopeQt.cmake) is the C++ standard; qmake: CONFIG += c++14 -> -std=gnu++1y, c++1z and
-# c++2a for 17 and 20 (NifSkope_settings.pri). GNU extensions stay on (CMAKE_CXX_EXTENSIONS defaults to ON).
-# Set as variables, not with cxx_std_14: a feature requirement adds no flag when the compiler's default
-# is already newer (Apple clang 21 and GCC 11+ default to gnu++17).  The C standard is left alone on purpose:
+# NIFSKOPE_CXX_STANDARD (cmake/NifskopeQt.cmake) is the C++ standard; qmake: CONFIG += c++1z and c++2a for 17 and 20
+# (NifSkope_settings.pri). GNU extensions stay on (CMAKE_CXX_EXTENSIONS defaults to ON).
+# Set as variables, not with cxx_std_17: a feature requirement adds no flag when the compiler's default is already
+# newer (Apple clang 21 and GCC 11+ default to gnu++17, GCC 16 to gnu++20). The C standard is left alone on purpose:
 # lib/lz4frame.c and the xxhash.c it includes typedef the same names, which only C11 and later accept.
 set(CMAKE_CXX_STANDARD ${NIFSKOPE_CXX_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
