@@ -1,4 +1,4 @@
-#version 130
+#version 120
 #extension GL_ARB_shader_texture_lod : require
 
 uniform sampler2D BaseMap;
@@ -47,22 +47,22 @@ uniform float envReflection;
 
 uniform mat4 worldMatrix;
 
-in vec3 LightDir;
-in vec3 ViewDir;
+varying vec3 LightDir;
+varying vec3 ViewDir;
 
-in vec4 A;
-in vec4 C;
-in vec4 D;
+varying vec4 A;
+varying vec4 C;
+varying vec4 D;
 
-in vec3 N;
-in vec3 t;
-in vec3 b;
+varying vec3 N;
+varying vec3 t;
+varying vec3 b;
 
 #ifndef M_PI
 	#define M_PI 3.1415926535897932384626433832795
 #endif
 
-#define FLT_EPSILON 1.192092896e-07F // smallest such that 1.0 + FLT_EPSILON != 1.0
+#define FLT_EPSILON 1.192092896e-07 // smallest such that 1.0 + FLT_EPSILON != 1.0
 
 float OrenNayar( vec3 L, vec3 V, vec3 N, float roughness, float NdotL )
 {
@@ -276,7 +276,7 @@ void main( void )
 	}
 
 	// Environment
-	vec4 cube = textureLod( CubeMap, reflectedWS, 8.0 - smoothness * 8.0 );
+	vec4 cube = textureCubeLod( CubeMap, reflectedWS, 8.0 - smoothness * 8.0 );
 	vec4 env = texture2D( EnvironmentMap, offset );
 	if ( hasCubeMap ) {
 		cube.rgb *= envReflection * specStrength;

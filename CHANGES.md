@@ -8,8 +8,9 @@ prerelease versions.
 The fork starts from the original's `develop` branch at commit `3a85ac5` (February 2018, "Merge pull request #126
 from jonwd7/develop"). The original's history up to that commit (2,218 commits) is kept in this repository.
 Everything below was added on top in October 2026, in pull requests
-[#1](https://github.com/a-nishimoto/nifskope/pull/1) and [#2](https://github.com/a-nishimoto/nifskope/pull/2), with
-the help of Claude Code (Anthropic); the commits carry a `Co-Authored-By` trailer.
+[#1](https://github.com/a-nishimoto/nifskope/pull/1) and [#2](https://github.com/a-nishimoto/nifskope/pull/2) and
+later fixes noted where they appear, with the help of Claude Code (Anthropic); the commits carry a `Co-Authored-By`
+trailer.
 
 ## At a glance
 
@@ -106,6 +107,13 @@ Qt was bundled, and a warm-up step absorbs the slow first start.
   the last row blanked the new last entry.
 * `Mesh::transform()` read the bytes of a `ByteColor4` through a pointer into a temporary that was gone at the end of
   the statement (undefined behaviour); the colour is a named local now.
+* The four Fallout 4 shaders (`fo4_default` and `fo4_effectshader`, vertex and fragment) declared `#version 130`, which
+  the OpenGL 2.1 context that macOS provides (GLSL 1.20) rejects, so on a Mac the two Fallout 4 programs were never
+  created. They are GLSL 1.20 now, like the Skyrim ones: `in` and `out` became `varying`, `textureLod` became
+  `textureCubeLod` (the shader already required `GL_ARB_shader_texture_lod`) and the `F` suffix of one constant went.
+  On an Apple M5 (GL 2.1 Metal, GLSL 1.20) all 11 shaders compile and all 6 programs link, where before the four
+  Fallout 4 shaders failed; that was checked with a throwaway program that is not kept. Drawing a Fallout 4 mesh was
+  not looked at, and Linux and Windows drivers were not tried.
 
 ## Behaviour kept on purpose
 
@@ -137,8 +145,9 @@ below 131072 into NaN; the first character of the right operand of an expression
 ## Not done, and not verified
 
 * The program has only been run headless. Rendering and the user interface were never looked at on a real display in
-  this work. The OpenGL rendering approach is unchanged, legacy OpenGL 2.1 (only mechanical edits touched `src/gl`), which
-  macOS may not suit for the GLSL 1.30 shaders.
+  this work. The OpenGL rendering approach is unchanged, legacy OpenGL 2.1 (only mechanical edits touched `src/gl`).
+  The Fallout 4 shaders did not even compile on macOS until they were ported to GLSL 1.20 (see above), and whether they
+  draw correctly there is not known.
 * Windows is verified only by the CI runs; no Windows machine was used. There is no native x86_64 macOS or Linux arm64
   testing, and no Qt 6 port (`QGLWidget` and the rest are still used).
 * Linux distributions older than Qt 5.15 or GCC 10 are not supported any more.
