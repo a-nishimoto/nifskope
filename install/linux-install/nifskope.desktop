@@ -1,10 +1,10 @@
 [Desktop Entry]
+Version=1.0
 Name=NifSkope
 Comment=Edit nif files
-Exec=nifskope
+Exec=nifskope %F
 Icon=nifskope
 Terminal=false
 Type=Application
 Categories=Graphics;3DGraphics;Qt;
-Encoding=UTF-8
 MimeType=application/vnd.gamebryo-nif;application/vnd.gamebryo-kf;application/vnd.gamebryo-kfm;
