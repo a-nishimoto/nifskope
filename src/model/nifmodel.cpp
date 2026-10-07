@@ -1584,6 +1584,7 @@ bool NifModel::setData( const QModelIndex & index, const QVariant & value, int r
 		break;
 	case NifModel::VerCondCol:
 		item->setVerCond( value.toString() );
+		break;
 	default:
 		return false;
 	}
