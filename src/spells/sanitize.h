@@ -9,7 +9,7 @@ public:
     QString page() const override final { return Spell::tr( "Sanitize" ); }
     // Prevent this from running during auto-sanitize for the time being
     //	Can really only cause issues with rendering and textureset overrides via the CK
-    bool sanity() const { return false; }
+    bool sanity() const override final { return false; }
 
     bool isApplicable( const NifModel *, const QModelIndex & index ) override final;
 

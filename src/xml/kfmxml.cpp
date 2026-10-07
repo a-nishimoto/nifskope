@@ -33,9 +33,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "message.h"
 #include "model/kfmmodel.h"
 
-#include <QtXml> // QXmlDefaultHandler Inherited
+#include "xml/xmlstream.h"
+
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QMessageBox>
+#include <QReadWriteLock>
 
 #define err( X ) { errorStr = X; return false; }
 
@@ -44,7 +48,7 @@ QReadWriteLock KfmModel::XMLlock;
 QList<quint32>                  KfmModel::supportedVersions;
 QHash<QString, NifBlockPtr>        KfmModel::compounds;
 
-class KfmXmlHandler final : public QXmlDefaultHandler
+class KfmXmlHandler final
 {
 	Q_DECLARE_TR_FUNCTIONS( KfmXmlHandler )
 
@@ -73,7 +77,7 @@ public:
 		return stack[--depth];
 	}
 
-	bool startElement( const QString &, const QString &, const QString & name, const QXmlAttributes & list ) override final
+	bool startElement( const QString & name, const XmlAttributes & list )
 	{
 		if ( depth >= 8 )
 			err( tr( "error maximum nesting level exceeded" ) );
@@ -182,7 +186,7 @@ public:
 		return true;
 	}
 
-	bool endElement( const QString &, const QString &, const QString & name ) override final
+	bool endElement( const QString & name )
 	{
 		if ( depth <= 0 )
 			err( tr( "mismatching end element tag for element " ) + name );
@@ -225,7 +229,7 @@ public:
 		return data.temp().isEmpty() || NifValue::type( data.temp() ) != NifValue::tNone || data.temp() == "TEMPLATE";
 	}
 
-	bool endDocument() override final
+	bool endDocument()
 	{
 		// make a rough check of the maps
 		for ( const QString& key : KfmModel::compounds.keys() ) {
@@ -244,17 +248,21 @@ public:
 		return true;
 	}
 
-	QString errorString() const override final
+	QString errorString() const
 	{
 		return errorStr;
 	}
-	bool fatalError( const QXmlParseException & exception ) override final
+	// text is not used: the old handler did not reimplement characters()
+	bool characters( const QString & )
+	{
+		return true;
+	}
+	void fatalError( int line )
 	{
 		if ( errorStr.isEmpty() )
 			errorStr = tr( "Syntax error" );
 
-		errorStr.prepend( tr( "%1 XML parse error (line %2): " ).arg( "KFM" ).arg( exception.lineNumber() ) );
-		return false;
+		errorStr.prepend( tr( "%1 XML parse error (line %2): " ).arg( "KFM" ).arg( line ) );
 	}
 };
 
@@ -296,15 +304,11 @@ QString KfmModel::parseXmlDescription( const QString & filename )
 	if ( !f.exists() )
 		return tr( "kfm.xml could not be found. Please install it and restart the application." );
 
-	if ( !f.open( QIODevice::ReadOnly | QIODevice::Text ) )
+	if ( !f.open( QIODevice::ReadOnly ) )
 		return tr( "Couldn't open KFM XML description file: %1" ).arg( filename );
 
 	KfmXmlHandler handler;
-	QXmlSimpleReader reader;
-	reader.setContentHandler( &handler );
-	reader.setErrorHandler( &handler );
-	QXmlInputSource source( &f );
-	reader.parse( source );
+	parseXmlDocument( f, handler );
 
 	if ( !handler.errorString().isEmpty() ) {
 		compounds.clear();

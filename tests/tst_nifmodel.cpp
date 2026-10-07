@@ -2105,6 +2105,135 @@ private slots:
 		QCOMPARE( tgt->get<QString>( tgt->getBlock( 0 ), "Name" ), QString( "Alpha" ) );
 		QCOMPARE( tgt->get<QString>( tgt->getBlock( 1 ), "Name" ), QString( "Beta" ) );
 	}
+
+	//! childIndex() does what the deprecated QModelIndex::child() did: the child of a valid index is the model's own index( row, column,
+	//! parent ), and an invalid index (it has no model) has no child. Spelled as index( row, column, QModelIndex() ), the model would
+	//! answer with a top level item instead.
+	void childIndex_replacesQModelIndexChild()
+	{
+		auto a = make( "20.0.0.5", 11, 11 );
+		QModelIndex node = a->insertNiBlock( "NiNode" );
+		QVERIFY( node.isValid() );
+		QVERIFY( a->set<int>( node, "Num Children", 2 ) );
+		QVERIFY( a->updateArray( node, "Children" ) );
+		QModelIndex children = a->getIndex( node, "Children" );
+		QVERIFY( children.isValid() );
+		QCOMPARE( a->rowCount( children ), 2 );
+
+		QModelIndex second = childIndex( children, 1, 0 );
+		QVERIFY( second.isValid() );
+		QCOMPARE( second, a->index( 1, 0, children ) );
+		QCOMPARE( second.parent(), children );
+		QCOMPARE( childIndex( children, 0, NifModel::ValueCol ), a->index( 0, NifModel::ValueCol, children ) );
+		QVERIFY( !childIndex( children, 2, 0 ).isValid() );	// past the last row
+
+		// a persistent index converts to the index it holds; a null one has no model
+		QPersistentModelIndex persistent( children );
+		QCOMPARE( childIndex( persistent, 1, 0 ), second );
+		QVERIFY( !childIndex( QPersistentModelIndex(), 0, 0 ).isValid() );
+
+		// the root index has no model and no child, whereas the model's own index() maps it to the top level
+		QVERIFY( a->index( 0, 0, QModelIndex() ).isValid() );
+		QVERIFY( !childIndex( QModelIndex(), 0, 0 ).isValid() );
+	}
+
+	// ---- editing the columns of a row
+
+	//! setData() on a column that holds an attribute of nif.xml (Argument, Array1, Array2, Condition, since, until, Version Condition) stores
+	//! the text, answers true and announces the change of that index, and of that index only. The Version Condition column used to run on
+	//! into the case of an unknown column: it stored the text, answered false and announced nothing.
+	void setData_schemaColumns_data()
+	{
+		QTest::addColumn<int>( "column" );
+		QTest::addColumn<QString>( "text" );
+		QTest::addColumn<QString>( "shown" );
+
+		QTest::newRow( "Argument" ) << int( NifModel::ArgCol ) << "Num Children" << "Num Children";
+		QTest::newRow( "Array1" ) << int( NifModel::Arr1Col ) << "Num Children" << "Num Children";
+		QTest::newRow( "Array2" ) << int( NifModel::Arr2Col ) << "Num Children" << "Num Children";
+		QTest::newRow( "Condition" ) << int( NifModel::CondCol ) << "Version > 10" << "Version > 10";
+		QTest::newRow( "since" ) << int( NifModel::Ver1Col ) << "10.0.1.0" << "10.0.1.0";
+		QTest::newRow( "until" ) << int( NifModel::Ver2Col ) << "20.0.0.5" << "20.0.0.5";
+		QTest::newRow( "Version Condition" ) << int( NifModel::VerCondCol ) << "(Version > 10) && (User Version 2 > 0)" << "(Version > 10) && (User Version 2 > 0)";
+	}
+
+	void setData_schemaColumns()
+	{
+		QFETCH( int, column );
+		QFETCH( QString, text );
+		QFETCH( QString, shown );
+
+		auto a = make( "20.0.0.5", 11, 11 );
+		QModelIndex node = a->insertNiBlock( "NiNode" );
+		QVERIFY( node.isValid() );
+		QModelIndex field = a->getIndex( node, "Num Children" );
+		QVERIFY( field.isValid() );
+		QModelIndex parent = field.parent();
+		int row = field.row();
+
+		// the row, column by column, as the views show it
+		auto shownRow = [&]() {
+			QStringList cells;
+			for ( int c = 0; c < NifModel::NumColumns; c++ )
+				cells << a->data( a->index( row, c, parent ), Qt::DisplayRole ).toString();
+
+			return cells;
+		};
+
+		QModelIndex idx = a->index( row, column, parent );
+		QVERIFY( idx.isValid() );
+		QStringList before = shownRow();
+		QVERIFY2( before[column] != shown, "the column holds the text already: nothing would show that it was set" );
+
+		QSignalSpy spy( a.get(), &QAbstractItemModel::dataChanged );
+		bool answer = a->setData( idx, text );
+
+		// the text is stored, as an edit and as it is shown (this holds even where setData() answers false)
+		QCOMPARE( a->data( idx, Qt::EditRole ).toString(), shown );
+		QCOMPARE( a->data( idx, Qt::DisplayRole ).toString(), shown );
+
+		// no other column of the row changes
+		QStringList after = shownRow();
+		QCOMPARE( after[column], shown );
+		after[column] = before[column];
+		QCOMPARE( after, before );
+
+		QVERIFY2( answer, "setData() answered false for a text it stored" );
+		QCOMPARE( spy.count(), 1 );
+		QCOMPARE( spy.at( 0 ).at( 0 ).value<QModelIndex>(), idx );
+		QCOMPARE( spy.at( 0 ).at( 1 ).value<QModelIndex>(), idx );
+	}
+
+	//! setData() on a column the model does not have: index() does not check the column, so the index is valid and the model has to refuse
+	//! it. It answers false, announces nothing and leaves the row as it was.
+	void setData_unknownColumn()
+	{
+		auto a = make( "20.0.0.5", 11, 11 );
+		QModelIndex node = a->insertNiBlock( "NiNode" );
+		QVERIFY( node.isValid() );
+		QModelIndex field = a->getIndex( node, "Num Children" );
+		QVERIFY( field.isValid() );
+		QModelIndex parent = field.parent();
+		int row = field.row();
+
+		auto shownRow = [&]() {
+			QStringList cells;
+			for ( int c = 0; c < NifModel::NumColumns; c++ )
+				cells << a->data( a->index( row, c, parent ), Qt::DisplayRole ).toString();
+
+			return cells;
+		};
+
+		QModelIndex idx = a->index( row, NifModel::NumColumns, parent );
+		QVERIFY( idx.isValid() );
+		QCOMPARE( idx.column(), int( NifModel::NumColumns ) );
+		QStringList before = shownRow();
+
+		QSignalSpy spy( a.get(), &QAbstractItemModel::dataChanged );
+		QVERIFY( !a->setData( idx, "Version > 10" ) );
+		QCOMPARE( spy.count(), 0 );
+		QCOMPARE( shownRow(), before );
+	}
 };
 
 REGISTER_TEST( tst_NifModel )

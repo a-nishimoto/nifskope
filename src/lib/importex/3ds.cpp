@@ -106,7 +106,7 @@ static void addLink( NifModel * nif, const QModelIndex & iBlock, const QString &
 	int numIndices = nif->get<int>( iSize );
 	nif->set<int>( iSize, numIndices + 1 );
 	nif->updateArray( iArray );
-	nif->setLink( iArray.child( numIndices, 0 ), link );
+	nif->setLink( childIndex( iArray, numIndices, 0 ), link );
 }
 
 static Color3 GetColorFromChunk( Chunk * cnk )
@@ -244,7 +244,7 @@ void import3ds( NifModel * nif, const QModelIndex & index )
 	float ObjScale;
 	QVector<objMesh> ObjMeshes;
 	QMap<QString, objMaterial> ObjMaterials;
-	QMap<QString, objKfSequence> ObjKeyframes;
+	QMultiMap<QString, objKfSequence> ObjKeyframes;
 
 	QSettings settings;
 	settings.beginGroup( "Import-Export" );
@@ -559,7 +559,7 @@ void import3ds( NifModel * nif, const QModelIndex & index )
 				}
 			}
 
-			ObjKeyframes.insertMulti( newKfSeq.objectName, newKfSeq );
+			ObjKeyframes.insert( newKfSeq.objectName, newKfSeq );
 		}
 	}
 
@@ -718,8 +718,8 @@ void import3ds( NifModel * nif, const QModelIndex & index )
 			}
 
 			nif->updateArray( iTexCo );
-			nif->updateArray( iTexCo.child( 0, 0 ) );
-			nif->setArray<Vector2>( iTexCo.child( 0, 0 ),  mesh->texcoords );
+			nif->updateArray( childIndex( iTexCo, 0, 0 ) );
+			nif->setArray<Vector2>( childIndex( iTexCo, 0, 0 ),  mesh->texcoords );
 
 			nif->set<int>( iData, "Has Triangles", 1 );
 			nif->set<int>( iData, "Num Triangles", triangles.count() );

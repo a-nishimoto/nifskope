@@ -546,4 +546,17 @@ template <typename T> inline void BaseModel::setArray( const QModelIndex & iPare
 	setArray<T>( getIndex( iParent, name ), array );
 }
 
+/*! The child of @a parent at @a row and @a column: what QModelIndex::child() and QPersistentModelIndex::child() returned
+ * (both are deprecated since Qt 5.8 and gone in Qt 6).
+ *
+ * This is not the same as @c parent.model()->index( row, column, parent ) spelled out at the call site: an invalid
+ * @a parent has no model, and the result is then an invalid index, whereas BaseModel::index() maps an invalid parent to
+ * the root item.
+ */
+inline QModelIndex childIndex( const QModelIndex & parent, int row, int column )
+{
+	const QAbstractItemModel * model = parent.model();
+	return model ? model->index( row, column, parent ) : QModelIndex();
+}
+
 #endif

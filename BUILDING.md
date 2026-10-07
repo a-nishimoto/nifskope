@@ -5,9 +5,11 @@ project (`NifSkope.pro`) is kept as the reference build, see [qmake](#qmake) at 
 
 ## Prerequisites
 
-* **Qt 5.15** (Qt 5.7 or later is accepted; Qt 6 is refused until the sources are ported, see [Qt](#qt)).
+* **Qt 5.15** (an older Qt is refused, and so is Qt 6 until the sources are ported, see [Qt](#qt)).
 * **CMake 3.22 or later** and a build tool. The presets use Ninja, except `vs2022`, which uses Visual Studio 2022.
-* A C++14 compiler: GCC, Clang, Apple clang, or MSVC from Visual Studio 2019 or later.
+* A C++20 compiler: GCC 10 or later, Clang 10 or later, Apple clang 12 (Xcode 12) or later, or MSVC from Visual Studio
+  2019 16.11 or later. CMake and qmake stop with a message on an older one; `NIFSKOPE_CXX_STANDARD=17` (see
+  [Options](#options)) selects C++17 instead. C++14 is not supported: the sources use `std::as_const`.
 * The submodules, which hold the XML description (`nif.xml`, `kfm.xml`) and the vendored libraries:
   `git submodule update --init --recursive`
 * Linux: the OpenGL and GLU development packages, `libgl1-mesa-dev libglu1-mesa-dev` on Debian and Ubuntu. A missing
@@ -28,8 +30,8 @@ ctest --preset dev
 ```
 
 `dev` is a Debug build with the tests, `release` an optimised one. `asan` adds AddressSanitizer and UBSan (Linux, macOS),
-`vs2022` is the Visual Studio 2022 solution (Windows), and the `ci-*` presets are what GitHub Actions uses. Without
-presets:
+`vs2022` is the Visual Studio 2022 solution (Windows), and the `ci-*` presets are what GitHub Actions uses; they also turn
+on `NIFSKOPE_WERROR_DEPRECATED` (see [Options](#options)). Without presets:
 
 ```sh
 cmake -S nifskope -B build-nifskope -G Ninja -DCMAKE_PREFIX_PATH=/path/to/Qt
@@ -72,6 +74,22 @@ the CMake build writes its `README.txt` into `<build>/generated`.
 | `NIFSKOPE_REVISION_OVERRIDE` | empty | Revision shown in About. Empty: the first 7 digits of `git rev-parse HEAD`, or none outside a git checkout |
 | `NIFSKOPE_ALLOW_QT6` | OFF | Continue with Qt 6 for porting work |
 | `NIFSKOPE_KEEP_NDEBUG` | OFF | Keep CMake's `-DNDEBUG` in the Release flags. Off, `assert()` stays live as it does in the qmake build |
+| `NIFSKOPE_CXX_STANDARD` | 20 | The C++ standard NifSkope's own code is compiled as: 17 or 20 (17 with Qt 6). A cache variable, so `-D` and the `cacheVariables` of a preset set it (qmake: `NIFSKOPE_CXX_STANDARD=17`). 14 is not supported (the sources use `std::as_const`), and neither is 23 yet |
+| `NIFSKOPE_QT_DEPRECATED_BEFORE` | `0x051500` | Value of `QT_DISABLE_DEPRECATED_BEFORE`: Qt API deprecated before this hexadecimal Qt version no longer compiles. The default is the minimum Qt, so the sources use nothing that Qt 5.15 deprecated; `0x050300` (Qt 5.3) declares the deprecated API again (qmake: `NIFSKOPE_QT_DEPRECATED_BEFORE=0x050300`) |
+| `NIFSKOPE_WERROR_DEPRECATED` | OFF | Make the use of a deprecated declaration an error in NifSkope's own code: `-Werror=deprecated-declarations` (`/we4996` with MSVC), for NifSkope's own targets only, not for the vendored libraries that are targets of their own (zlib, lz4, NvTriStrip). The `ci-*` presets turn it on, so a deprecated call stops the CI build; a newer compiler or C++ library deprecates more than the ones CI uses, which is why the default is OFF. There is no qmake counterpart: qmake compiles the vendored sources with the same flags |
+
+NifSkope's own code is compiled with `-Wall -Wextra` (clang also with `-Wimplicit-fallthrough`, which GCC's `-Wextra`
+includes and clang's does not; MSVC: `/W3`, plus C4100 and C4189 at that level) and builds without warnings with Apple
+clang 21, so a new warning is a mistake in the change that adds it. A `case` that falls through on purpose says so with
+`Q_FALLTHROUGH();` (a "fall through" comment satisfies GCC but not clang). The vendored libraries are built without
+warning options: theirs are not NifSkope's to fix.
+
+With MSVC, NifSkope's own targets (and `NifSkope.pro` and `tests/tests.pro`) define
+`_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING`: in Qt 5.15.2 to 5.15.16, `QVector`, `QList` and `QVarLengthArray` pass
+`stdext::checked_array_iterator` to `std::equal` or `std::copy` on MSVC (`QT_MAKE_CHECKED_ARRAY_ITERATOR`), and the STL
+of Visual Studio 2022 17.8 and later deprecates that class (STL4043, reported as C4996, an error with
+`NIFSKOPE_WERROR_DEPRECATED`; checked against 17.14). It is Qt's use, not NifSkope's. Qt 5.15.17 made those macros
+no-ops from 17.8 on (QTBUG-118993), so the define does nothing there.
 
 The vendored libraries (zlib, lz4, qhull, gli/glm, NvTriStrip, half) are the default and are built from the sources in
 `lib/`: the submodules' own CMake files are not used. The `NIFSKOPE_USE_SYSTEM_*` options use a library found through
@@ -94,7 +112,7 @@ cmake -S nifskope -B build-tests -DCMAKE_PREFIX_PATH=/path/to/Qt -DNIFSKOPE_BUIL
 
 `find_package(QT NAMES Qt6 Qt5)` takes the first Qt that `CMAKE_PREFIX_PATH` leads to. When Qt 5 and Qt 6 are installed
 in one prefix (Debian and Ubuntu: `/usr`), Qt 6 wins there: choose Qt 5 with `-DQT_DIR=<prefix>/lib/cmake/Qt5`. NifSkope
-does not build with Qt 6 yet (`QGLWidget`, the SAX XML reader, `QRegExp` and others), so configuring against it stops
+does not build with Qt 6 yet (`QGLWidget`, `QRegExp` and others), so configuring against it stops
 with a message; `-DNIFSKOPE_ALLOW_QT6=ON` continues for people who work on the port.
 
 ## Install
@@ -149,6 +167,11 @@ CMake build was compared with (same compiled sources, same test results). Differ
 
 * Their `NIFSKOPE_ROOT` override and the `CONFIG += nvtristrip qhull zlib lz4 fsengine gli` switches have no CMake
   counterpart (`CONFIG+=no_zlib` of the tests is `NIFSKOPE_BUILD_BSA_TEST=OFF`).
+* The language standard and the Qt deprecation level are set on the qmake command line with the CMake option names,
+  `qmake NIFSKOPE_CXX_STANDARD=17 NIFSKOPE_QT_DEPRECATED_BEFORE=0x050300 /path/to/NifSkope.pro`, in a fresh build
+  directory. `NifSkope_settings.pri` holds the defaults, the Qt 5.15 minimum and the compiler minimums of C++20 for
+  `NifSkope.pro` and `tests/tests.pro`. Qt 5's qmake has no `c++20` value for `CONFIG`; the file maps 20 to `c++2a` and
+  gives MSVC `/std:c++20` where the mkspec would say `/std:c++latest`.
 * qmake rewrites `README.md` in the source directory it is given from `build/README.md.in` at link time. CMake never
   does.
 * The CMake Release build uses `-O3`; qmake's has no `-O` at all with Clang. CMake's own default `-DNDEBUG` is removed

@@ -47,6 +47,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QSettings>
 #include <QTextStream>
 
+#include <utility> // std::as_const
+
 #define tr( x ) QApplication::tr( x )
 
 
@@ -199,7 +201,7 @@ QDomElement colorMapElement( QVector<Color4> colors, int idx )
 	source.appendChild( float_array );
 
 	QString text( "" );
-	foreach ( Color4 v, colors ) {
+	for ( const Color4 & v : std::as_const( colors ) ) {
 		text.append( QString( "%1 %2 %3 %4 " ).arg( v[0] ).arg( v[1] ).arg( v[2] ).arg( v[3] ) );
 	}
 	float_array.appendChild( doc.createTextNode( text ) );
@@ -256,7 +258,7 @@ QDomElement uvMapElement( QVector<Vector2> uvMap, int idx, int row )
 	QString uvText( "" );
 	// we have to flip the second UV coordinate because nif uses
 	// different convention from collada
-	foreach ( Vector2 v, uvMap ) {
+	for ( const Vector2 & v : std::as_const( uvMap ) ) {
 		uvText.append( QString( "%1 %2 " ).arg( v[0] ).arg( 1.0 - v[1] ) );
 	}
 	float_array.appendChild( doc.createTextNode( uvText ) );
@@ -300,7 +302,7 @@ QDomElement positionsElement( QVector<Vector3> verts, int idx )
 	source.appendChild( float_array );
 
 	QString posText( "" );
-	foreach ( Vector3 v, verts ) {
+	for ( const Vector3 & v : std::as_const( verts ) ) {
 		posText.append( QString( "%1 %2 %3 " ).arg( v[0], 0, 'f', 6 ).arg( v[1], 0, 'f', 6 ).arg( v[2], 0, 'f', 6 ) );
 	}
 	float_array.appendChild( doc.createTextNode( posText ) );
@@ -352,7 +354,7 @@ QDomElement normalsElement( QVector<Vector3> normals, int idx )
 		source.appendChild( float_array );
 
 		QString norText( "" );
-		foreach ( Vector3 v, normals ) {
+		for ( const Vector3 & v : std::as_const( normals ) ) {
 			norText.append( QString( "%1 %2 %3 " ).arg( v[0], 0, 'f', 6 ).arg( v[1], 0, 'f', 6 ).arg( v[2], 0, 'f', 6 ) );
 		}
 		float_array.appendChild( doc.createTextNode( norText ) );
@@ -602,7 +604,7 @@ void attachNiShape ( const NifModel * nif, QDomElement parentNode, int idx )
 	if ( culling && !cullRegExp.pattern().isEmpty() && nif->get<QString>( iBlock, "Name" ).contains( cullRegExp ) )
 		return;
 
-	foreach ( qint32 link, nif->getChildLinks( idx ) ) {
+	for ( qint32 link : nif->getChildLinks( idx ) ) {
 		QModelIndex iProp = nif->getBlock( link );
 
 		if ( nif->inherits( iProp, "NiTexturingProperty" ) ) {
@@ -770,7 +772,7 @@ void attachNiShape ( const NifModel * nif, QDomElement parentNode, int idx )
 			QModelIndex iUV = nif->getIndex( iProp, "UV Sets" );
 
 			for ( int row = 0; row < uvCount; row++ ) {
-				QVector<Vector2> uvMap = nif->getArray<Vector2>( iUV.child( row, 0 ) );
+				QVector<Vector2> uvMap = nif->getArray<Vector2>( childIndex( iUV, row, 0 ) );
 				mesh.appendChild( uvMapElement( uvMap, idx, row ) );
 
 				if ( uvMap.size() > 0 )
@@ -845,7 +847,7 @@ void attachNiShape ( const NifModel * nif, QDomElement parentNode, int idx )
 				QVector<QVector<quint16> > strips;
 
 				for ( int r = 0; r < nif->rowCount( iPoints ); r++ )
-					strips.append( nif->getArray<quint16>( iPoints.child( r, 0 ) ) );
+					strips.append( nif->getArray<quint16>( childIndex( iPoints, r, 0 ) ) );
 
 				tri = triangulate( strips );
 			} else {
@@ -854,7 +856,7 @@ void attachNiShape ( const NifModel * nif, QDomElement parentNode, int idx )
 
 			QDomElement p = doc.createElement( "p" );
 			QString triText;
-			foreach ( Triangle v, tri ) {
+			for ( const Triangle & v : std::as_const( tri ) ) {
 				// TODO: add multiple UV
 				if ( haveVertex == true ) triText.append( QString( "%1 " ).arg( v[0] ) );
 				if ( haveNormal == true ) triText.append( QString( "%1 " ).arg( v[0] ) );
@@ -945,7 +947,7 @@ void attachNiNode ( const NifModel * nif, QDomElement parentNode, int idx )
 
 	// parent attach and new loop
 	parentNode.appendChild( node );
-	foreach ( int l, nif->getChildLinks( idx ) ) {
+	for ( int l : nif->getChildLinks( idx ) ) {
 		QModelIndex iChild = nif->getBlock( l );
 
 		if ( iChild.isValid() ) {

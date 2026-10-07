@@ -77,7 +77,7 @@ static void removeWasteVertices( NifModel * nif, const QModelIndex & iData, cons
 		QModelIndex iUVSets = nif->getIndex( iData, "UV Sets" );
 
 		for ( int r = 0; r < nif->rowCount( iUVSets ); r++ ) {
-			texco << nif->getArray<Vector2>( iUVSets.child( r, 0 ) );
+			texco << nif->getArray<Vector2>( childIndex( iUVSets, r, 0 ) );
 
 			if ( texco.last().count() != verts.count() )
 				throw QString( Spell::tr( "UV array size differs" ) );
@@ -107,7 +107,7 @@ static void removeWasteVertices( NifModel * nif, const QModelIndex & iData, cons
 		QModelIndex iPoints = nif->getIndex( iData, "Points" );
 
 		for ( int r = 0; r < nif->rowCount( iPoints ); r++ ) {
-			strips << nif->getArray<quint16>( iPoints.child( r, 0 ) );
+			strips << nif->getArray<quint16>( childIndex( iPoints, r, 0 ) );
 			for ( const auto p : strips.last() ) {
 				used.insert( p, true );
 			}
@@ -165,7 +165,7 @@ static void removeWasteVertices( NifModel * nif, const QModelIndex & iData, cons
 		nif->setArray<Triangle>( iData, "Triangles", tris );
 
 		for ( int r = 0; r < nif->rowCount( iPoints ); r++ )
-			nif->setArray<quint16>( iPoints.child( r, 0 ), strips[r] );
+			nif->setArray<quint16>( childIndex( iPoints, r, 0 ), strips[r] );
 
 		nif->set<int>( iData, "Num Vertices", verts.count() );
 		nif->updateArray( iData, "Vertices" );
@@ -176,8 +176,8 @@ static void removeWasteVertices( NifModel * nif, const QModelIndex & iData, cons
 		nif->setArray<Color4>( iData, "Vertex Colors", colors );
 
 		for ( int r = 0; r < nif->rowCount( iUVSets ); r++ ) {
-			nif->updateArray( iUVSets.child( r, 0 ) );
-			nif->setArray<Vector2>( iUVSets.child( r, 0 ), texco[r] );
+			nif->updateArray( childIndex( iUVSets, r, 0 ) );
+			nif->setArray<Vector2>( childIndex( iUVSets, r, 0 ), texco[r] );
 		}
 
 		// process NiSkinData
@@ -189,10 +189,10 @@ static void removeWasteVertices( NifModel * nif, const QModelIndex & iData, cons
 
 		for ( int b = 0; b < nif->rowCount( iBones ); b++ ) {
 			QVector<QPair<int, float> > weights;
-			QModelIndex iWeights = nif->getIndex( iBones.child( b, 0 ), "Vertex Weights" );
+			QModelIndex iWeights = nif->getIndex( childIndex( iBones, b, 0 ), "Vertex Weights" );
 
 			for ( int w = 0; w < nif->rowCount( iWeights ); w++ ) {
-				weights.append( QPair<int, float>( nif->get<int>( iWeights.child( w, 0 ), "Index" ), nif->get<float>( iWeights.child( w, 0 ), "Weight" ) ) );
+				weights.append( QPair<int, float>( nif->get<int>( childIndex( iWeights, w, 0 ), "Index" ), nif->get<float>( childIndex( iWeights, w, 0 ), "Weight" ) ) );
 			}
 
 			for ( int x = weights.count() - 1; x >= 0; x-- ) {
@@ -209,12 +209,12 @@ static void removeWasteVertices( NifModel * nif, const QModelIndex & iData, cons
 					w.first = map[ w.first ];
 			}
 
-			nif->set<int>( iBones.child( b, 0 ), "Num Vertices", weights.count() );
+			nif->set<int>( childIndex( iBones, b, 0 ), "Num Vertices", weights.count() );
 			nif->updateArray( iWeights );
 
 			for ( int w = 0; w < weights.count(); w++ ) {
-				nif->set<int>( iWeights.child( w, 0 ), "Index", weights[w].first );
-				nif->set<float>( iWeights.child( w, 0 ), "Weight", weights[w].second );
+				nif->set<int>( childIndex( iWeights, w, 0 ), "Index", weights[w].first );
+				nif->set<float>( childIndex( iWeights, w, 0 ), "Weight", weights[w].second );
 			}
 		}
 
@@ -279,7 +279,7 @@ public:
 	void flip( NifModel * nif, const QModelIndex & index, int f )
 	{
 		if ( nif->isArray( index ) ) {
-			QModelIndex idx = index.child( 0, 0 );
+			QModelIndex idx = childIndex( index, 0, 0 );
 
 			if ( idx.isValid() ) {
 				if ( nif->isArray( idx ) )
@@ -332,7 +332,7 @@ public:
 	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
 	{
 		return ( nif->getValue( index ).type() == NifValue::tTriangle )
-		       || ( nif->isArray( index ) && nif->getValue( index.child( 0, 0 ) ).type() == NifValue::tTriangle );
+		       || ( nif->isArray( index ) && nif->getValue( childIndex( index, 0, 0 ) ).type() == NifValue::tTriangle );
 	}
 
 	QModelIndex cast( NifModel * nif, const QModelIndex & index ) override final
@@ -487,7 +487,7 @@ public:
 			QModelIndex iUVSets = nif->getIndex( iData, "UV Sets" );
 
 			for ( int r = 0; r < nif->rowCount( iUVSets ); r++ ) {
-				texco << nif->getArray<Vector2>( iUVSets.child( r, 0 ) );
+				texco << nif->getArray<Vector2>( childIndex( iUVSets, r, 0 ) );
 
 				if ( texco.last().count() != verts.count() )
 					throw QString( Spell::tr( "UV array size differs" ) );
@@ -555,7 +555,7 @@ public:
 			QModelIndex iPoints = nif->getIndex( iData, "Points" );
 
 			for ( int r = 0; r < nif->rowCount( iPoints ); r++ ) {
-				QVector<quint16> strip = nif->getArray<quint16>( iPoints.child( r, 0 ) );
+				QVector<quint16> strip = nif->getArray<quint16>( childIndex( iPoints, r, 0 ) );
 				QMutableVectorIterator<quint16> istrp( strip );
 
 				while ( istrp.hasNext() ) {
@@ -565,7 +565,7 @@ public:
 						p = map.value( p );
 				}
 
-				nif->setArray<quint16>( iPoints.child( r, 0 ), strip );
+				nif->setArray<quint16>( childIndex( iPoints, r, 0 ), strip );
 			}
 
 			// finally, remove the now unused vertices
@@ -697,7 +697,7 @@ public:
 		// Retrieve the verts
 		QVector<Vector3> verts;
 		for ( int i = 0; i < nif->rowCount( vertData ); i++ ) {
-			verts << nif->get<Vector3>( vertData.child( i, 0 ), "Vertex" );
+			verts << nif->get<Vector3>( childIndex( vertData, i, 0 ), "Vertex" );
 		}
 
 		if ( verts.isEmpty() )
@@ -776,7 +776,7 @@ QModelIndex spUpdateTrianglesFromSkin::cast( NifModel * nif, const QModelIndex &
 	QVector<Triangle> tris;
 	auto iParts = nif->getIndex( iSkinPart, "Skin Partition Blocks" );
 	for ( int i = 0; i < nif->rowCount( iParts ) && iParts.isValid(); i++ )
-		tris << SkinPartition( nif, iParts.child( i, 0 ) ).getRemappedTriangles();
+		tris << SkinPartition( nif, childIndex( iParts, i, 0 ) ).getRemappedTriangles();
 
 	nif->set<bool>( iData, "Has Triangles", true );
 	nif->set<ushort>( iData, "Num Triangles", tris.size() );

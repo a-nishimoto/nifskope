@@ -39,6 +39,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gl/gltex.h"
 #include "model/nifmodel.h"
 #include "ui/settingsdialog.h"
+#include "ui/wheeldelta.h"
 #include "ui/widgets/fileselect.h"
 
 #include <QApplication>
@@ -1715,7 +1716,7 @@ void GLView::mouseMoveEvent( QMouseEvent * event )
 
 	if ( event->buttons() & Qt::LeftButton && !kbd[Qt::Key_Space] ) {
 		mouseRot += Vector3( dy * .5, 0, dx * .5 );
-	} else if ( (event->buttons() & Qt::MidButton) || (event->buttons() & Qt::LeftButton && kbd[Qt::Key_Space]) ) {
+	} else if ( (event->buttons() & Qt::MiddleButton) || (event->buttons() & Qt::LeftButton && kbd[Qt::Key_Space]) ) {
 		float d = axis / (qMax( width(), height() ) + 1);
 		mouseMov += Vector3( dx * d, -dy * d, 0 );
 	} else if ( event->buttons() & Qt::RightButton ) {
@@ -1796,9 +1797,9 @@ void GLView::mouseReleaseEvent( QMouseEvent * event )
 void GLView::wheelEvent( QWheelEvent * event )
 {
 	if ( view == ViewWalk )
-		mouseMov += Vector3( 0, 0, event->delta() );
+		mouseMov += Vector3( 0, 0, wheelDelta( event ) );
 	else
-		setDistance( Dist * (event->delta() < 0 ? 1.0 / 0.8 : 0.8) );
+		setDistance( Dist * (wheelDelta( event ) < 0 ? 1.0 / 0.8 : 0.8) );
 }
 
 

@@ -5,16 +5,12 @@
 TEMPLATE = app
 TARGET   = NifSkope
 
+# xml is for the COLLADA export (QDomDocument in lib/importex/col.cpp): the nif.xml and kfm.xml parsers use QXmlStreamReader (QtCore)
 QT += xml opengl network widgets
 
-# Require Qt 5.7 or higher
-contains(QT_VERSION, ^5\\.[0-6]\\..*) {
-	message("Cannot build NifSkope with Qt version $${QT_VERSION}")
-	error("Minimum required version is Qt 5.7")
-}
-
-# C++11/14 Support
-CONFIG += c++14
+# Minimum Qt version (5.15), C++ standard and Qt deprecation level
+#	NIFSKOPE_CXX_STANDARD, NIFSKOPE_QT_DEPRECATED_BEFORE: see NifSkope_settings.pri
+include(NifSkope_settings.pri)
 
 # Dependencies
 CONFIG += nvtristrip qhull zlib lz4 fsengine gli
@@ -42,7 +38,7 @@ CONFIG(debug, debug|release) {
 DEFINES += \
 	QT_NO_CAST_FROM_BYTEARRAY \ # QByteArray deprecations
 	QT_NO_URL_CAST_FROM_STRING \ # QUrl deprecations
-	QT_DISABLE_DEPRECATED_BEFORE=0x050300 #\ # Disable all functions deprecated as of 5.3
+	QT_DISABLE_DEPRECATED_BEFORE=$$NIFSKOPE_QT_DEPRECATED_BEFORE #\ # Disable all functions deprecated before this Qt version
 
 	# Useful for tracking down strings not using
 	#	QObject::tr() for translations.
@@ -194,7 +190,9 @@ HEADERS += \
 	src/ui/checkablemessagebox.h \
 	src/ui/settingsdialog.h \
 	src/ui/settingspane.h \
+	src/ui/wheeldelta.h \
 	src/xml/nifexpr.h \
+	src/xml/xmlstream.h \
 	src/glview.h \
 	src/message.h \
 	src/nifskope.h \
@@ -394,7 +392,7 @@ win32 {
 
 # MSVC
 #  Both Visual Studio and Qt Creator
-#  Required: msvc2013 or higher
+#  Required: msvc2019 16.11 or higher (C++20, see NifSkope_settings.pri)
 *msvc* {
 
 	# Grab _MSC_VER from the mkspecs that Qt was compiled with
@@ -405,7 +403,7 @@ win32 {
 
 	# Reject unsupported MSVC versions
 	!isEmpty(_MSC_VER):lessThan(_MSC_VER, 1900) {
-		error("NifSkope only supports MSVC 2015 or later. If this is too prohibitive you may use Qt Creator with MinGW.")
+		error("NifSkope only supports MSVC 2015 or later (2019 16.11 or later for C++20). If this is too prohibitive you may use Qt Creator with MinGW.")
 	}
 
 	# So VCProj Filters do not flatten headers/source
@@ -418,10 +416,16 @@ win32 {
 	#  Multithreaded compiling for Visual Studio
 	QMAKE_CXXFLAGS += -MP
 
-	# Standards conformance to match GCC and clang
+	# Standards conformance to match GCC and clang. The language standard flag comes from CONFIG (NifSkope_settings.pri)
 	!isEmpty(_MSC_VER):greaterThan(_MSC_VER, 1900) {
-		QMAKE_CXXFLAGS += /permissive- /std:c++latest
+		QMAKE_CXXFLAGS += /permissive-
 	}
+
+	# Qt 5.15.2 to 5.15.16: QVector/QList/QVarLengthArray hand stdext::checked_array_iterator to std::equal or
+	# std::copy, which the STL of Visual Studio 2022 17.8 and later deprecates (STL4043, C4996). Qt 5.15.17 no longer
+	# does (QTBUG-118993). qmake's -w44996 keeps it out of a /W3 build, so this is for parity with the CMake build
+	# (cmake/NifskopeCompile.cmake), where /we4996 makes it an error
+	DEFINES += _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
 
 	# LINKER FLAGS
 
@@ -434,7 +438,7 @@ win32 {
 
 
 # MinGW, GCC
-#  Recommended: GCC 4.8.1+
+#  Recommended: GCC 10+ (C++20)
 *-g++ {
 
 	# COMPILER FLAGS
@@ -444,15 +448,15 @@ win32 {
 	QMAKE_CXXFLAGS_DEBUG *= -Og -g3
 	QMAKE_CXXFLAGS_RELEASE *= -O3 -mfpmath=sse
 
-	# C++11 Support
-	QMAKE_CXXFLAGS_RELEASE *= -std=c++14
+	# C++ standard
+	QMAKE_CXXFLAGS_RELEASE *= -std=c++$${NIFSKOPE_CXX_STANDARD}
 
 	#  Extension flags
 	QMAKE_CXXFLAGS_RELEASE *= -msse2 -msse
 }
 
 win32 {
-    # GL libs for Qt 5.5+
+    # OpenGL and GLU
     LIBS += -lopengl32 -lglu32
 }
 
@@ -462,6 +466,9 @@ unix:!macx {
 
 macx {
 	LIBS += -framework CoreFoundation
+
+	# Apple deprecated OpenGL (glu*() in macOS 10.9, the rest in 10.14): the CMake build defines this as well
+	DEFINES += GL_SILENCE_DEPRECATION
 }
 
 

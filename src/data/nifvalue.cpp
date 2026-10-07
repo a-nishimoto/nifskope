@@ -300,7 +300,7 @@ quint32 NifValue::enumOptionValue( const QString & eid, const QString & oid, boo
 				*ok = true;
 
 			quint32 value = 0;
-			QStringList list = oid.split( QRegularExpression( "\\s*\\|\\s*" ), QString::SkipEmptyParts );
+			QStringList list = oid.split( QRegularExpression( "\\s*\\|\\s*" ), Qt::SkipEmptyParts );
 			QStringListIterator lit( list );
 
 			while ( lit.hasNext() ) {
@@ -783,6 +783,8 @@ bool NifValue::setFromString( const QString & s )
 			return true;
 		}
 
+		// anything else is a number, as for tByte
+		Q_FALLTHROUGH();
 	case tByte:
 		val.u32 = 0;
 		val.u08 = s.toUInt( &ok, 0 );

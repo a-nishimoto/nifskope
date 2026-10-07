@@ -30,31 +30,34 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***** END LICENCE BLOCK *****/
 
-#ifndef GROUPBOX_H
-#define GROUPBOX_H
+#ifndef WHEELDELTA_H
+#define WHEELDELTA_H
 
-#include <QGroupBox> // Inherited
-#include <QBoxLayout>
-#include <QStack>
+#include <QWheelEvent>
 
 
-class GroupBox final : public QGroupBox
+//! @file wheeldelta.h wheelDelta()
+
+//! The value QWheelEvent::delta() returned for a wheel event: the angle of the axis the event is mostly about
+/*!
+ *  QWheelEvent::delta() is deprecated since Qt 5.15 and not in Qt 6, and angleDelta().y() is no replacement for it:
+ *  for a sideways scroll (a tilt wheel, a horizontal trackpad scroll) y is 0 and delta() was the horizontal angle.
+ *
+ *  A widget gets its wheel events from QWidgetWindow::handleWheelEvent(), which builds them with the QWheelEvent
+ *  constructor that takes no delta() (the one with the Qt 4 value is behind QT_DEPRECATED_SINCE( 5, 0 ), false in a
+ *  Qt that is built the usual way, QT_DISABLE_DEPRECATED_BEFORE being Qt 5.0). That constructor sets delta() from the
+ *  angle delta alone: the horizontal angle if its magnitude is above the vertical one, else the vertical angle.
+ *  This is that rule.
+ *
+ *  The platform hands a scroll along both axes to Qt as two events, the second with a null angleDelta(), and
+ *  QWindowSystemInterface gives that second event the horizontal angle as its delta(), but no widget ever sees that:
+ *  to a widget the second event has delta() 0, as has any event with a null angleDelta() (the scroll phase events).
+ */
+inline int wheelDelta( const QWheelEvent * e )
 {
-	QStack<QBoxLayout *> lay;
+	const QPoint a = e->angleDelta();
 
-public:
-	GroupBox( Qt::Orientation o );
-	GroupBox( const QString & title, Qt::Orientation o );
-	~GroupBox();
-
-	void addWidget( QWidget * widget, int stretch = 0, Qt::Alignment alignment = Qt::Alignment() );
-
-	QWidget * pushLayout( const QString & name, Qt::Orientation o, int stretch = 0, Qt::Alignment alignment = Qt::Alignment() );
-	void pushLayout( Qt::Orientation o, int stretch = 0 );
-
-	void popLayout();
-
-	static QBoxLayout::Direction o2d( Qt::Orientation o );
-};
+	return qAbs( a.x() ) > qAbs( a.y() ) ? a.x() : a.y();
+}
 
 #endif

@@ -64,7 +64,8 @@
 			"name": "ci-base",
 			"hidden": true,
 			"inherits": "release",
-			"description": "GitHub Actions: Qt comes from jurplel/install-qt-action (QT_ROOT_DIR)"
+			"description": "GitHub Actions: Qt comes from jurplel/install-qt-action (QT_ROOT_DIR). A deprecated declaration in NifSkope's own code stops the build",
+			"cacheVariables": { "NIFSKOPE_WERROR_DEPRECATED": "ON" }
 		},
 		{
 			"name": "ci-linux",

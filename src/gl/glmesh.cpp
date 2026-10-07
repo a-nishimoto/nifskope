@@ -280,7 +280,7 @@ QModelIndex Mesh::vertexAt( int idx ) const
 		return QModelIndex();
 
 	auto iVertexData = nif->getIndex( iData, "Vertices" );
-	auto iVertex = iVertexData.child( idx, 0 );
+	auto iVertex = childIndex( iVertexData, idx, 0 );
 
 	return iVertex;
 }
@@ -336,7 +336,7 @@ void Mesh::transform()
 			using CompSemIdxMap = QVector<QPair<NiMesh::Semantic, uint>>;
 			QVector<CompSemIdxMap> compSemanticIndexMaps;
 			for ( int i = 0; i < nif->rowCount( iData ); i++ ) {
-				auto stream = nif->getLink( iData.child( i, 0 ), "Stream" );
+				auto stream = nif->getLink( childIndex( iData, i, 0 ), "Stream" );
 				auto iDataStream = nif->getBlock( stream );
 
 				auto usage = NiMesh::DataStreamUsage( nif->get<uint>( iDataStream, "Usage" ) );
@@ -347,13 +347,13 @@ void Mesh::transform()
 					return;
 
 				// For each datastream, store the semantic and the index (used for E_TEXCOORD)
-				auto iComponentSemantics = nif->getIndex( iData.child( i, 0 ), "Component Semantics" );
-				uint numComponents = nif->get<uint>( iData.child( i, 0 ), "Num Components" );
+				auto iComponentSemantics = nif->getIndex( childIndex( iData, i, 0 ), "Component Semantics" );
+				uint numComponents = nif->get<uint>( childIndex( iData, i, 0 ), "Num Components" );
 				CompSemIdxMap compSemanticIndexMap;
 				for ( uint j = 0; j < numComponents; j++ ) {
-					auto name = nif->get<QString>( iComponentSemantics.child( j, 0 ), "Name" );
+					auto name = nif->get<QString>( childIndex( iComponentSemantics, j, 0 ), "Name" );
 					auto sem = NiMesh::semanticStrings.value( name );
-					uint idx = nif->get<uint>( iComponentSemantics.child( j, 0 ), "Index" );
+					uint idx = nif->get<uint>( childIndex( iComponentSemantics, j, 0 ), "Index" );
 					compSemanticIndexMap.insert( j, {sem, idx} );
 
 					// Create UV stubs for multi-coord systems
@@ -395,13 +395,13 @@ void Mesh::transform()
 				// filled in order for each data stream.
 				// Submeshes may be required if total index values exceed USHRT_MAX
 				QMap<ushort, ushort> submeshMap;
-				ushort numSubmeshes = nif->get<ushort>( iData.child( i, 0 ), "Num Submeshes" );
-				auto iSubmeshMap = nif->getIndex( iData.child( i, 0 ), "Submesh To Region Map" );
+				ushort numSubmeshes = nif->get<ushort>( childIndex( iData, i, 0 ), "Num Submeshes" );
+				auto iSubmeshMap = nif->getIndex( childIndex( iData, i, 0 ), "Submesh To Region Map" );
 				for ( ushort j = 0; j < numSubmeshes; j++ )
-					submeshMap.insert( j, nif->get<ushort>( iSubmeshMap.child( j, 0 ) ) );
+					submeshMap.insert( j, nif->get<ushort>( childIndex( iSubmeshMap, j, 0 ) ) );
 
 				// Get the datastream
-				quint32 stream = nif->getLink( iData.child( i, 0 ), "Stream" );
+				quint32 stream = nif->getLink( childIndex( iData, i, 0 ), "Stream" );
 				auto iDataStream = nif->getBlock( stream );
 
 				auto usage = NiMesh::DataStreamUsage(nif->get<uint>( iDataStream, "Usage" ));
@@ -417,8 +417,8 @@ void Mesh::transform()
 				auto iRegions = nif->getIndex( iDataStream, "Regions" );
 				if ( iRegions.isValid() ) {
 					for ( quint32 j = 0; j < numRegions; j++ ) {
-						regions.append( { nif->get<quint32>( iRegions.child( j, 0 ), "Start Index" ),
-										nif->get<quint32>( iRegions.child( j, 0 ), "Num Indices" ) }
+						regions.append( { nif->get<quint32>( childIndex( iRegions, j, 0 ), "Start Index" ),
+										nif->get<quint32>( childIndex( iRegions, j, 0 ), "Num Indices" ) }
 						);
 
 						numIndices += regions[j].second;
@@ -431,7 +431,7 @@ void Mesh::transform()
 					indices.reserve( totalIndices );
 				} else if ( compIdx == 1 ) {
 					// Indices should be built already
-					if ( indices.size() != totalIndices )
+					if ( quint32( indices.size() ) != totalIndices )
 						return;
 
 					quint32 maxSize = maxIndex + 1;
@@ -453,15 +453,15 @@ void Mesh::transform()
 				QVector<NiMesh::DataStreamFormat> datastreamFormats;
 				uint numStreamComponents = nif->get<uint>( iDataStream, "Num Components" );
 				for ( uint j = 0; j < numStreamComponents; j++ ) {
-					auto format = nif->get<uint>( nif->getIndex( iDataStream, "Component Formats" ).child( j, 0 ) );
+					auto format = nif->get<uint>( childIndex( nif->getIndex( iDataStream, "Component Formats" ), j, 0 ) );
 					datastreamFormats.append( NiMesh::DataStreamFormat(format) );
 				}
 
-				Q_ASSERT( compSemanticIndexMaps[i].size() == numStreamComponents );
+				Q_ASSERT( quint32( compSemanticIndexMaps[i].size() ) == numStreamComponents );
 
 				auto tempMdl = std::make_unique<NifModel>( this );
 
-				QByteArray streamData = nif->get<QByteArray>( nif->getIndex( iDataStream, "Data" ).child( 0, 0 ) );
+				QByteArray streamData = nif->get<QByteArray>( childIndex( nif->getIndex( iDataStream, "Data" ), 0, 0 ) );
 				QBuffer streamBuffer( &streamData );
 				streamBuffer.open( QIODevice::ReadOnly );
 
@@ -475,7 +475,6 @@ void Mesh::transform()
 					for ( uint k = 0; k < numStreamComponents; k++ ) {
 						auto typeK = datastreamFormats[k];
 						int typeLength = ( (typeK & 0x000F0000) >> 0x10 );
-						int typeSize = ( (typeK & 0x00000F00) >> 0x08 );
 
 						switch ( (typeK & 0x00000FF0) >> 0x04 ) {
 						case 0x10:
@@ -578,7 +577,7 @@ void Mesh::transform()
 							Q_ASSERT( usage == NiMesh::USAGE_VERTEX );
 							if ( compType == NiMesh::E_TEXCOORD ) {
 								quint32 coordSet = compSemanticIndexMaps[i].value( k ).second;
-								Q_ASSERT( coords.size() > coordSet );
+								Q_ASSERT( quint32( coords.size() ) > coordSet );
 								coords[coordSet][j + off] = tempValue.get<Vector2>();
 							}
 							break;
@@ -594,7 +593,8 @@ void Mesh::transform()
 							Q_ASSERT( usage == NiMesh::USAGE_VERTEX );
 							if ( compType == NiMesh::E_COLOR ) {
 								// Swizzle BGRA -> RGBA
-								auto c = tempValue.get<ByteColor4>().data();
+								auto bgra = tempValue.get<ByteColor4>();
+								auto c = bgra.data();
 								colors[j + off] = {c[2], c[1], c[0], c[3]};
 							}
 							break;
@@ -628,8 +628,8 @@ void Mesh::transform()
 			if ( !(semFlags & NiMesh::HAS_BLENDINDICES) || !(semFlags & NiMesh::HAS_BLENDWEIGHT) )
 				weights.clear();
 
-			Q_ASSERT( verts.size() == maxIndex + 1 );
-			Q_ASSERT( indices.size() == totalIndices );
+			Q_ASSERT( quint32( verts.size() ) == maxIndex + 1 );
+			Q_ASSERT( quint32( indices.size() ) == totalIndices );
 
 			// Make geometry
 			triangles.resize( indices.size() / 3 );
@@ -686,7 +686,7 @@ void Mesh::transform()
 
 			if ( uvcoord.isValid() ) {
 				for ( int r = 0; r < nif->rowCount( uvcoord ); r++ ) {
-					TexCoords tc = nif->getArray<Vector2>( uvcoord.child( r, 0 ) );
+					TexCoords tc = nif->getArray<Vector2>( childIndex( uvcoord, r, 0 ) );
 
 					if ( tc.count() < verts.count() )
 						tc.clear();
@@ -735,7 +735,7 @@ void Mesh::transform()
 
 				if ( points.isValid() ) {
 					for ( int r = 0; r < nif->rowCount( points ); r++ )
-						tristrips.append( nif->getArray<quint16>( points.child( r, 0 ) ) );
+						tristrips.append( nif->getArray<quint16>( childIndex( points, r, 0 ) ) );
 				} else {
 					Message::append( tr( "Warnings were generated while rendering mesh." ),
 						tr( "Block %1: Invalid 'Points' array in %2" )
@@ -754,7 +754,7 @@ void Mesh::transform()
 
 			if ( iExtraData.isValid() ) {
 				for ( int e = 0; e < nif->rowCount( iExtraData ); e++ ) {
-					QModelIndex iExtra = nif->getBlock( nif->getLink( iExtraData.child( e, 0 ) ), "NiBinaryExtraData" );
+					QModelIndex iExtra = nif->getBlock( nif->getLink( childIndex( iExtraData, e, 0 ) ), "NiBinaryExtraData" );
 
 					if ( nif->get<QString>( iExtra, "Name" ) == "Tangent space (binormal & tangent vectors)" ) {
 						iTangentData = iExtra;
@@ -801,7 +801,7 @@ void Mesh::transform()
 			hvw = hvw && !iSkinPart.isValid();
 			int vcnt = hvw ? verts.count() : 0;
 			for ( int b = 0; b < nif->rowCount( idxBones ) && b < bones.count(); b++ ) {
-				weights.append( BoneWeights( nif, idxBones.child( b, 0 ), bones[ b ], vcnt ) );
+				weights.append( BoneWeights( nif, childIndex( idxBones, b, 0 ), bones[ b ], vcnt ) );
 			}
 		}
 
@@ -811,7 +811,7 @@ void Mesh::transform()
 			uint numTris = 0;
 			uint numStrips = 0;
 			for ( int i = 0; i < nif->rowCount( idx ) && idx.isValid(); i++ ) {
-				partitions.append( SkinPartition( nif, idx.child( i, 0 ) ) );
+				partitions.append( SkinPartition( nif, childIndex( idx, i, 0 ) ) );
 				numTris += partitions[i].triangles.size();
 				numStrips += partitions[i].tristrips.size();
 			}
@@ -1096,9 +1096,11 @@ void Mesh::drawShapes( NodeList * secondPass, bool presort )
 		case Scene::Level2:
 			if ( lod2tris.count() )
 				glDrawElements( GL_TRIANGLES, lod2tris.count() * 3, GL_UNSIGNED_SHORT, lod2tris.constData() );
+			Q_FALLTHROUGH();
 		case Scene::Level1:
 			if ( lod1tris.count() )
 				glDrawElements( GL_TRIANGLES, lod1tris.count() * 3, GL_UNSIGNED_SHORT, lod1tris.constData() );
+			Q_FALLTHROUGH();
 		case Scene::Level0:
 		default:
 			if ( lod0tris.count() )
@@ -1251,10 +1253,10 @@ void Mesh::drawSelection() const
 
 		if ( points.isValid() ) {
 			for ( int j = 0; j < nif->rowCount( points ); j++ ) {
-				QModelIndex iPoints = points.child( j, 0 );
+				QModelIndex iPoints = childIndex( points, j, 0 );
 
 				for ( int k = 0; k < nif->rowCount( iPoints ); k++ ) {
-					glVertex( transVerts.value( nif->get<quint16>( iPoints.child( k, 0 ) ) ) );
+					glVertex( transVerts.value( nif->get<quint16>( childIndex( iPoints, k, 0 ) ) ) );
 				}
 			}
 		}
@@ -1265,15 +1267,15 @@ void Mesh::drawSelection() const
 			glDepthFunc( GL_ALWAYS );
 			glHighlightColor();
 			glBegin( GL_POINTS );
-			QModelIndex iPoints = points.child( i, 0 );
+			QModelIndex iPoints = childIndex( points, i, 0 );
 
 			if ( nif->isArray( idx ) ) {
 				for ( int j = 0; j < nif->rowCount( iPoints ); j++ ) {
-					glVertex( transVerts.value( nif->get<quint16>( iPoints.child( j, 0 ) ) ) );
+					glVertex( transVerts.value( nif->get<quint16>( childIndex( iPoints, j, 0 ) ) ) );
 				}
 			} else {
 				iPoints = idx.parent();
-				glVertex( transVerts.value( nif->get<quint16>( iPoints.child( i, 0 ) ) ) );
+				glVertex( transVerts.value( nif->get<quint16>( childIndex( iPoints, i, 0 ) ) ) );
 			}
 
 			glEnd();
@@ -1501,7 +1503,7 @@ void Mesh::drawSelection() const
 	if ( n == "Bone List" ) {
 		if ( nif->isArray( idx ) ) {
 			for ( int i = 0; i < nif->rowCount( idx ); i++ )
-				boneSphere( nif, idx.child( i, 0 ) );
+				boneSphere( nif, childIndex( idx, i, 0 ) );
 		} else {
 			boneSphere( nif, idx );
 		}

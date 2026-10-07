@@ -1321,7 +1321,7 @@ class tst_NifExpr final : public QObject
 		env.names["User Version"] = 12;
 		env.names["User Version 2"] = 83;
 
-		for ( const QString & assignment : vars.split( ';', QString::SkipEmptyParts ) ) {
+		for ( const QString & assignment : vars.split( ';', Qt::SkipEmptyParts ) ) {
 			bool ok = false;
 			quint32 v = assignment.section( '=', 1 ).toUInt( &ok, 0 );
 			if ( !ok )

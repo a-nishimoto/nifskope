@@ -47,6 +47,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QSettings>
 
 #include <algorithm> // std::stable_sort
+#include <utility> // std::as_const
 
 
 //! @file glnode.cpp Scene management for visible NiNodes and their children.
@@ -81,7 +82,9 @@ NodeList::~NodeList()
 
 void NodeList::clear()
 {
-	foreach ( Node * n, nodes ) {
+	// del() removes the node from nodes (and may delete it), so iterate a copy
+	const QVector<Node *> snapshot = nodes;
+	for ( Node * n : snapshot ) {
 		del( n );
 	}
 }
@@ -132,7 +135,7 @@ void NodeList::validate()
 		if ( !n->isValid() )
 			rem.append( n );
 	}
-	foreach ( Node * n, rem ) {
+	for ( Node * n : std::as_const( rem ) ) {
 		del( n );
 	}
 }
@@ -319,7 +322,7 @@ void Node::update( const NifModel * nif, const QModelIndex & index )
 
 		if ( iChildren.isValid() ) {
 			for ( int c = 0; c < nif->rowCount( iChildren ); c++ ) {
-				qint32 link = nif->getLink( iChildren.child( c, 0 ) );
+				qint32 link = nif->getLink( childIndex( iChildren, c, 0 ) );
 
 				if ( lChildren.contains( link ) ) {
 					QModelIndex iChild = nif->getBlock( link );
@@ -643,7 +646,7 @@ void Node::drawSelection() const
 
 		int ct = nif->rowCount( cp );
 		for ( int i = 0; i < ct; i++ ) {
-			auto p = cp.child( i, 0 );
+			auto p = childIndex( cp, i, 0 );
 
 			auto trans = nif->get<Vector3>( p, "Translation" );
 			auto rot = nif->get<Quat>( p, "Rotation" );
@@ -792,7 +795,7 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 		if ( iShapes.isValid() ) {
 			for ( int r = 0; r < nif->rowCount( iShapes ); r++ ) {
 				if ( !Node::SELECTING ) {
-					if ( scene->currentBlock == nif->getBlock( nif->getLink( iShapes.child( r, 0 ) ) ) ) {
+					if ( scene->currentBlock == nif->getBlock( nif->getLink( childIndex( iShapes, r, 0 ) ) ) ) {
 						// fix: add selected visual to havok meshes
 						glHighlightColor();
 						glLineWidth( 2.5 );
@@ -805,7 +808,7 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 					}
 				}
 
-				drawHvkShape( nif, nif->getBlock( nif->getLink( iShapes.child( r, 0 ) ) ), stack, scene, origin_color3fv );
+				drawHvkShape( nif, nif->getBlock( nif->getLink( childIndex( iShapes, r, 0 ) ) ), stack, scene, origin_color3fv );
 			}
 		}
 	} else if ( name == "bhkTransformShape" || name == "bhkConvexTransformShape" ) {
@@ -836,7 +839,7 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 		QModelIndex iSpheres = nif->getIndex( iShape, "Spheres" );
 
 		for ( int r = 0; r < nif->rowCount( iSpheres ); r++ ) {
-			drawSphere( nif->get<Vector3>( iSpheres.child( r, 0 ), "Center" ), nif->get<float>( iSpheres.child( r, 0 ), "Radius" ) );
+			drawSphere( nif->get<Vector3>( childIndex( iSpheres, r, 0 ), "Center" ), nif->get<float>( childIndex( iSpheres, r, 0 ), "Radius" ) );
 		}
 	} else if ( name == "bhkBoxShape" ) {
 		if ( Node::SELECTING ) {
@@ -917,7 +920,7 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 			QModelIndex iTris = nif->getIndex( iData, "Triangles" );
 
 			for ( int t = 0; t < nif->rowCount( iTris ); t++ ) {
-				Triangle tri = nif->get<Triangle>( iTris.child( t, 0 ), "Triangle" );
+				Triangle tri = nif->get<Triangle>( childIndex( iTris, t, 0 ), "Triangle" );
 
 				if ( tri[0] != tri[1] || tri[1] != tri[2] || tri[2] != tri[0] ) {
 					glBegin( GL_LINE_STRIP );
@@ -948,9 +951,9 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 						glHighlightColor();
 
 						//for ( int t = 0; t < nif->rowCount( iTris ); t++ )
-						//	DrawTriangleIndex( verts, nif->get<Triangle>( iTris.child( t, 0 ), "Triangle" ), t );
+						//	DrawTriangleIndex( verts, nif->get<Triangle>( childIndex( iTris, t, 0 ), "Triangle" ), t );
 					} else if ( nif->isCompound( nif->getBlockType( scene->currentIndex ) ) ) {
-						Triangle tri = nif->get<Triangle>( iTris.child( i, 0 ), "Triangle" );
+						Triangle tri = nif->get<Triangle>( childIndex( iTris, i, 0 ), "Triangle" );
 						DrawTriangleSelection( verts, tri );
 						//DrawTriangleIndex( verts, tri, i );
 					} else if ( nif->getBlockName( scene->currentIndex ) == "Normal" ) {
@@ -969,23 +972,19 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 					int end_vertex = 0;
 					int num_vertices = nif->get<int>( scene->currentIndex, "Num Vertices" );
 
-					int ct = nif->rowCount( iTris );
 					int totalVerts = 0;
 					if ( num_vertices > 0 ) {
 						QModelIndex iParent = scene->currentIndex.parent();
-						int rowCount = nif->rowCount( iParent );
 						for ( int j = 0; j < i; j++ ) {
-							totalVerts += nif->get<int>( iParent.child( j, 0 ), "Num Vertices" );
+							totalVerts += nif->get<int>( childIndex( iParent, j, 0 ), "Num Vertices" );
 						}
 
 						end_vertex += totalVerts + num_vertices;
 						start_vertex += totalVerts;
-
-						ct = (end_vertex - start_vertex) / 3;
 					}
 
 					for ( int t = 0; t < nif->rowCount( iTris ); t++ ) {
-						Triangle tri = nif->get<Triangle>( iTris.child( t, 0 ), "Triangle" );
+						Triangle tri = nif->get<Triangle>( childIndex( iTris, t, 0 ), "Triangle" );
 
 						if ( (start_vertex <= tri[0]) && (tri[0] < end_vertex) ) {
 							if ( (start_vertex <= tri[1]) && (tri[1] < end_vertex) && (start_vertex <= tri[2]) && (tri[2] < end_vertex) ) {
@@ -1000,13 +999,11 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 			}
 			// Handle Selection of bhkPackedNiTriStripsShape
 			else if ( scene->currentBlock == iShape ) {
-				int i = -1;
 				QString n = scene->currentIndex.data( NifSkopeDisplayRole ).toString();
 				QModelIndex iParent = scene->currentIndex.parent();
 
 				if ( iParent.isValid() && iParent != iShape ) {
 					n = iParent.data( NifSkopeDisplayRole ).toString();
-					i = scene->currentIndex.row();
 				}
 
 				//qDebug() << n;
@@ -1020,7 +1017,7 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 					int end_vertex = 0;
 
 					for ( int subshape = 0; subshape < nif->rowCount( iSubShapes ); subshape++ ) {
-						QModelIndex iCurrentSubShape = iSubShapes.child( subshape, 0 );
+						QModelIndex iCurrentSubShape = childIndex( iSubShapes, subshape, 0 );
 						int num_vertices = nif->get<int>( iCurrentSubShape, "Num Vertices" );
 						//qDebug() << num_vertices;
 						end_vertex += num_vertices;
@@ -1034,7 +1031,7 @@ void drawHvkShape( const NifModel * nif, const QModelIndex & iShape, QStack<QMod
 
 					// highlight the triangles of the subshape
 					for ( int t = 0; t < nif->rowCount( iTris ); t++ ) {
-						Triangle tri = nif->get<Triangle>( iTris.child( t, 0 ), "Triangle" );
+						Triangle tri = nif->get<Triangle>( childIndex( iTris, t, 0 ), "Triangle" );
 
 						if ( (start_vertex <= tri[0]) && (tri[0] < end_vertex) ) {
 							if ( (start_vertex <= tri[1]) && (tri[1] < end_vertex) && (start_vertex <= tri[2]) && (tri[2] < end_vertex) ) {
@@ -1090,7 +1087,7 @@ void drawHvkConstraint( const NifModel * nif, const QModelIndex & iConstraint, c
 	}
 
 	for ( int r = 0; r < nif->rowCount( iBodies ); r++ ) {
-		qint32 l = nif->getLink( iBodies.child( r, 0 ) );
+		qint32 l = nif->getLink( childIndex( iBodies, r, 0 ) );
 
 		if ( !scene->bhkBodyTrans.contains( l ) )
 			return; // TODO: Make sure this is not supposed to be continue;
@@ -1503,7 +1500,7 @@ void Node::drawHavok()
 
 	if ( iExtraDataList.isValid() ) {
 		for ( int d = 0; d < nif->rowCount( iExtraDataList ); d++ ) {
-			QModelIndex iBound = nif->getBlock( nif->getLink( iExtraDataList.child( d, 0 ) ), "BSBound" );
+			QModelIndex iBound = nif->getBlock( nif->getLink( childIndex( iExtraDataList, d, 0 ) ), "BSBound" );
 
 			if ( !iBound.isValid() )
 				continue;
@@ -1841,7 +1838,7 @@ void Node::drawFurn()
 
 	for ( int p = 0; p < nif->rowCount( iExtraDataList ); p++ ) {
 		// DONE: never seen Furn in nifs, so there may be a need of a fix here later - saw one, fixed a bug
-		QModelIndex iFurnMark = nif->getBlock( nif->getLink( iExtraDataList.child( p, 0 ) ), "BSFurnitureMarker" );
+		QModelIndex iFurnMark = nif->getBlock( nif->getLink( childIndex( iExtraDataList, p, 0 ) ), "BSFurnitureMarker" );
 
 		if ( !iFurnMark.isValid() )
 			continue;
@@ -1852,7 +1849,7 @@ void Node::drawFurn()
 			break;
 
 		for ( int j = 0; j < nif->rowCount( iPositions ); j++ ) {
-			QModelIndex iPosition = iPositions.child( j, 0 );
+			QModelIndex iPosition = childIndex( iPositions, j, 0 );
 
 			if ( scene->currentIndex == iPosition )
 				glHighlightColor();
@@ -1943,7 +1940,7 @@ BoundSphere Node::bounds() const
 
 	if ( iExtraDataList.isValid() ) {
 		for ( int d = 0; d < nif->rowCount( iExtraDataList ); d++ ) {
-			QModelIndex iBound = nif->getBlock( nif->getLink( iExtraDataList.child( d, 0 ) ), "BSBound" );
+			QModelIndex iBound = nif->getBlock( nif->getLink( childIndex( iExtraDataList, d, 0 ) ), "BSBound" );
 
 			if ( !iBound.isValid() )
 				continue;
@@ -1988,8 +1985,8 @@ void LODNode::update( const NifModel * nif, const QModelIndex & index )
 
 		if ( iLevels.isValid() ) {
 			for ( int r = 0; r < nif->rowCount( iLevels ); r++ ) {
-				ranges.append( { nif->get<float>( iLevels.child( r, 0 ), "Near Extent" ),
-				                 nif->get<float>( iLevels.child( r, 0 ), "Far Extent" ) }
+				ranges.append( { nif->get<float>( childIndex( iLevels, r, 0 ), "Near Extent" ),
+				                 nif->get<float>( childIndex( iLevels, r, 0 ), "Far Extent" ) }
 				);
 			}
 		}

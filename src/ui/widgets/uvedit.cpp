@@ -38,6 +38,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gl/gltools.h"
 #include "model/nifmodel.h"
 #include "ui/settingsdialog.h"
+#include "ui/wheeldelta.h"
 
 #include "lib/nvtristripwrapper.h"
 
@@ -670,7 +671,7 @@ void UVWidget::mouseMoveEvent( QMouseEvent * e )
 		}
 		break;
 
-	case Qt::MidButton:
+	case Qt::MiddleButton:
 		pos += zoom * QPointF( dPos.x(), -dPos.y() );
 		updateViewRect( width(), height() );
 
@@ -742,7 +743,7 @@ void UVWidget::wheelEvent( QWheelEvent * e )
 {
 	switch ( e->modifiers() ) {
 	case Qt::NoModifier:
-		zoom *= 1.0 + ( e->delta() / 8.0 ) / ZOOMUNIT;
+		zoom *= 1.0 + ( wheelDelta( e ) / 8.0 ) / ZOOMUNIT;
 
 		if ( zoom < MINZOOM ) {
 			zoom = MINZOOM;
@@ -849,7 +850,7 @@ bool UVWidget::setNifData( NifModel * nifModel, const QModelIndex & nifIndex )
 	}
 
 	if ( nif->inherits( iShapeData, "NiTriBasedGeomData" ) ) {
-		iTexCoords = nif->getIndex( iShapeData, "UV Sets" ).child( 0, 0 );
+		iTexCoords = childIndex( nif->getIndex( iShapeData, "UV Sets" ), 0, 0 );
 
 		if ( !iTexCoords.isValid() || !nif->rowCount( iTexCoords ) ) {
 			return false;
@@ -891,7 +892,7 @@ bool UVWidget::setNifData( NifModel * nifModel, const QModelIndex & nifIndex )
 
 					if ( iTexSource.isValid() ) {
 						currentCoordSet = nif->get<int>( iTex, "UV Set" );
-						iTexCoords = nif->getIndex( iShapeData, "UV Sets" ).child( currentCoordSet, 0 );
+						iTexCoords = childIndex( nif->getIndex( iShapeData, "UV Sets" ), currentCoordSet, 0 );
 						texsource  = iTexSource;
 
 						if ( setTexCoords() )
@@ -929,7 +930,7 @@ bool UVWidget::setNifData( NifModel * nifModel, const QModelIndex & nifIndex )
 						QModelIndex iTextures = nif->getIndex( iTexSource, "Textures" );
 
 						if ( iTextures.isValid() ) {
-							texfile = TexCache::find( nif->get<QString>( iTextures.child( 0, 0 ) ), nif->getFolder() );
+							texfile = TexCache::find( nif->get<QString>( childIndex( iTextures, 0, 0 ) ), nif->getFolder() );
 							return true;
 						}
 					}
@@ -968,7 +969,7 @@ bool UVWidget::setTexCoords()
 			return false;
 
 		for ( int r = 0; r < nif->rowCount( iPoints ); r++ ) {
-			tris += triangulate( nif->getArray<quint16>( iPoints.child( r, 0 ) ) );
+			tris += triangulate( nif->getArray<quint16>( childIndex( iPoints, r, 0 ) ) );
 		}
 	} else if ( nif->inherits( iShape, "BSTriShape" ) ) {
 		if ( !isDataOnSkin ) {
@@ -994,7 +995,7 @@ bool UVWidget::setTexCoords()
 		faces.append( face( fIdx, t[0], t[1], t[2] ) );
 
 		for ( int i = 0; i < 3; i++ ) {
-			texcoords2faces.insertMulti( t[i], fIdx );
+			texcoords2faces.insert( t[i], fIdx );
 		}
 	}
 
@@ -1554,7 +1555,7 @@ void UVWidget::selectTexSlot()
 
 				if ( iTexSource.isValid() ) {
 					currentCoordSet = nif->get<int>( iTex, "UV Set" );
-					iTexCoords = nif->getIndex( iShapeData, "UV Sets" ).child( currentCoordSet, 0 );
+					iTexCoords = childIndex( nif->getIndex( iShapeData, "UV Sets" ), currentCoordSet, 0 );
 					texsource  = iTexSource;
 					setTexCoords();
 					updateGL();
@@ -1610,7 +1611,7 @@ void UVWidget::changeCoordSet( int setToUse )
 	currentCoordSet = setToUse;
 	nif->set<quint8>( iTex, "UV Set", currentCoordSet );
 	// read new coordinate set
-	iTexCoords = nif->getIndex( iShapeData, "UV Sets" ).child( currentCoordSet, 0 );
+	iTexCoords = childIndex( nif->getIndex( iShapeData, "UV Sets" ), currentCoordSet, 0 );
 	setTexCoords();
 }
 
@@ -1624,7 +1625,7 @@ void UVWidget::duplicateCoordSet()
 	nif->set<quint8>( iShapeData, "Num UV Sets", numUvSets + 1 );
 	QModelIndex uvSets = nif->getIndex( iShapeData, "UV Sets" );
 	nif->updateArray( uvSets );
-	nif->setArray<Vector2>( uvSets.child( numUvSets, 0 ), nif->getArray<Vector2>( uvSets.child( currentCoordSet, 0 ) ) );
+	nif->setArray<Vector2>( childIndex( uvSets, numUvSets, 0 ), nif->getArray<Vector2>( childIndex( uvSets, currentCoordSet, 0 ) ) );
 	// switch to that coordinate set
 	changeCoordSet( numUvSets );
 	// reconnect data changed signal

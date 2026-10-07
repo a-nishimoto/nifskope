@@ -490,7 +490,7 @@ QVariant BaseModel::data( const QModelIndex & index, int role ) const
 			}
 		}
 		return QVariant();
-	case Qt::BackgroundColorRole:
+	case Qt::BackgroundRole:
 		{
 			if ( column == ValueCol && item->value().isColor() ) {
 				return item->value().toColor();

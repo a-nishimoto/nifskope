@@ -212,7 +212,6 @@ void ColorWheel::paintEvent( QPaintEvent * e )
 	QPainter p( this );
 	p.translate( width() / 2, height() / 2 );
 	p.setRenderHint( QPainter::Antialiasing );
-	p.setRenderHint( QPainter::HighQualityAntialiasing );
 
 	p.setPen( Qt::NoPen );
 
@@ -226,7 +225,7 @@ void ColorWheel::paintEvent( QPaintEvent * e )
 
 	p.setBrush( QBrush( cgrad ) );
 	p.drawEllipse( QRectF( -s, -s, s * 2, s * 2 ) );
-	p.setBrush( palette().color( QPalette::Background ) );
+	p.setBrush( palette().color( QPalette::Window ) );
 	p.drawEllipse( QRectF( -c, -c, c * 2, c * 2 ) );
 
 	double x = ( H - 0.5 ) * 2 * M_PI;
@@ -342,7 +341,8 @@ void ColorWheel::setColor( int x, int y )
 {
 	if ( pressed == Circle ) {
 		QLineF l( QPointF( width() / 2.0, height() / 2.0 ), QPointF( x, y ) );
-		H = l.angle( QLineF( 0, 1, 0, 0 ) ) / 360.0;
+		const QLineF up( 0, 1, 0, 0 );
+		H = qMin( l.angleTo( up ), up.angleTo( l ) ) / 360.0;
 
 		if ( l.dx() > 0 )
 			H = 1.0 - H;

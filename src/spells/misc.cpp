@@ -156,7 +156,7 @@ class spExportBinary final : public Spell
 public:
 	QString name() const override final { return Spell::tr( "Export Binary" ); }
 
-	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
+	bool isApplicable( const NifModel *, const QModelIndex & index ) override final
 	{
 		NifItem * item = static_cast<NifItem *>(index.internalPointer());
 
@@ -204,7 +204,7 @@ class spImportBinary final : public Spell
 public:
 	QString name() const override final { return Spell::tr( "Import Binary" ); }
 
-	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
+	bool isApplicable( const NifModel *, const QModelIndex & index ) override final
 	{
 		NifItem * item = static_cast<NifItem *>(index.internalPointer());
 
@@ -221,7 +221,7 @@ public:
 		if ( item->isArray() && item->isBinary() ) {
 			parent = item;
 			iParent = index;
-			idx = index.child( 0, 0 );
+			idx = childIndex( index, 0, 0 );
 		}
 
 		QString filename = QFileDialog::getOpenFileName( qApp->activeWindow(), tr( "Import Binary File" ), "", "*.*" );
@@ -275,7 +275,7 @@ QModelIndex spCollapseArray::numCollapser( NifModel * nif, QModelIndex & iNumEle
 		QVector<qint32> links;
 
 		for ( int r = 0; r < nif->rowCount( iArray ); r++ ) {
-			qint32 l = nif->getLink( iArray.child( r, 0 ) );
+			qint32 l = nif->getLink( childIndex( iArray, r, 0 ) );
 
 			if ( l >= 0 )
 				links.append( l );

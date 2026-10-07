@@ -490,7 +490,7 @@ void NifSkope::select( const QModelIndex & index )
 			tree->setCurrentIndex( idx.sibling( idx.row(), 0 ) );
 
 			// Expand BSShaderTextureSet by default
-			//if ( root.child( 1, 0 ).data().toString() == "Textures" )
+			//if ( childIndex( root, 1, 0 ).data().toString() == "Textures" )
 			//	tree->expandAll();
 
 		} else {
@@ -769,7 +769,7 @@ void NifSkope::openArchive( const QString & archive )
 {
 	// Clear memory from previously opened archives
 	bsaModel->clear();
-	bsaProxyModel->clear();
+	bsaProxyModel->invalidate();
 	bsaProxyModel->setSourceModel( emptyModel );
 	bsaView->setModel( emptyModel );
 	bsaView->setSortingEnabled( false );
@@ -830,7 +830,7 @@ void NifSkope::openArchive( const QString & archive )
 		connect( filterTimer, &QTimer::timeout, [this]() {
 			auto text = ui->bsaFilter->text();
 
-			bsaProxyModel->setFilterRegExp( QRegExp( text, Qt::CaseInsensitive, QRegExp::Wildcard ) );
+			bsaProxyModel->setFilterWildcard( text );
 			bsaView->expandAll();
 
 			if ( text.isEmpty() ) {

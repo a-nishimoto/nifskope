@@ -347,7 +347,7 @@ bool NifSkopeVersion::formatVersion( const QString & ver, QList<int> & verNums, 
 
 			// Splitting at stagePart gives you a list with the rev and stageVer
 			//	e.g. "0a1" becomes ("0", "1")
-			revParts = rev.split( stagePart, QString::SkipEmptyParts );
+			revParts = rev.split( stagePart, Qt::SkipEmptyParts );
 			// This is the revision number without e.g. "a1" appended
 			revPart = revParts.value( 0, "0" );
 			// This is the version of the Alpha/Beta/RC

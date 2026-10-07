@@ -34,9 +34,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "data/niftypes.h"
 #include "model/nifmodel.h"
 
-#include <QtXml> // QXmlDefaultHandler Inherited
+#include "xml/xmlstream.h"
+
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QMessageBox>
+#include <QReadWriteLock>
 
 
 //! \file nifxml.cpp NifXmlHandler, NifModel XML
@@ -52,7 +56,7 @@ QHash<QString, NifBlockPtr> NifModel::blocks;
 QMap<quint32, NifBlockPtr> NifModel::blockHashes;
 
 //! Parses nif.xml
-class NifXmlHandler final : public QXmlDefaultHandler
+class NifXmlHandler final
 {
 //	Q_DECLARE_TR_FUNCTIONS(NifXmlHandler)
 
@@ -136,14 +140,12 @@ public:
 		return stack[--depth];
 	}
 
-	//! Reimplemented from QXmlContentHandler
+	//! Called for every start tag
 	/*!
-	 * \param Namespace (unused)
-	 * \param localName (unused)
 	 * \param tagid Qualified name
 	 * \param list Attributes
 	 */
-	bool startElement( const QString &, const QString &, const QString & tagid, const QXmlAttributes & list ) override final
+	bool startElement( const QString & tagid, const XmlAttributes & list )
 	{
 		if ( depth >= 8 )
 			err( tr( "error maximum nesting level exceeded" ) );
@@ -260,6 +262,7 @@ public:
 			if ( x != tagAdd )
 				err( tr( "only add tags allowed in compound type declaration" ) );
 
+			Q_FALLTHROUGH();
 		case tagBlock:
 			push( x );
 
@@ -416,13 +419,11 @@ public:
 		return true;
 	}
 
-	//! Reimplemented from QXmlContentHandler
+	//! Called for every end tag
 	/*!
-	 * \param Namespace (unused)
-	 * \param localName (unused)
 	 * \param tagid Qualified name
 	 */
-	bool endElement( const QString &, const QString &, const QString & tagid ) override final
+	bool endElement( const QString & tagid )
 	{
 		if ( depth <= 0 )
 			err( tr( "mismatching end element tag for element %1" ).arg( tagid ) );
@@ -439,6 +440,7 @@ public:
 			else if ( !typId.isEmpty() && !typTxt.isEmpty() )
 				NifValue::setTypeDescription( typId, typTxt );
 
+			Q_FALLTHROUGH();
 		case tagBlock:
 			if ( blk ) {
 				if ( blk->id.isEmpty() ) {
@@ -480,6 +482,7 @@ public:
 		case tagEnum:
 		case tagBitFlag:
 			NifValue::setTypeDescription( typId, typTxt );
+			Q_FALLTHROUGH();
 		default:
 			break;
 		}
@@ -487,11 +490,11 @@ public:
 		return true;
 	}
 
-	//! Reimplemented from QXmlContentHandler
+	//! Called for every run of character data
 	/*!
 	 * \param s The character data
 	 */
-	bool characters( const QString & s ) override final
+	bool characters( const QString & s )
 	{
 		switch ( current() ) {
 		case tagVersion:
@@ -542,8 +545,8 @@ public:
 		);
 	}
 
-	//! Reimplemented from QXmlContentHandler
-	bool endDocument() override final
+	//! Called when the whole document has been read without error
+	bool endDocument()
 	{
 		// make a rough check of the maps
 		for ( const QString& key : NifModel::compounds.keys() ) {
@@ -581,19 +584,18 @@ public:
 		return true;
 	}
 
-	//! Reimplemented from QXmlContentHandler
-	QString errorString() const override final
+	//! The error message, empty if there was no error
+	QString errorString() const
 	{
 		return errorStr;
 	}
-	//! Exception handler
-	bool fatalError( const QXmlParseException & exception ) override final
+	//! Called when a callback failed or the document is not well-formed
+	void fatalError( int line )
 	{
 		if ( errorStr.isEmpty() )
 			errorStr = "Syntax error";
 
-		errorStr.prepend( tr( "%1 XML parse error (line %2): " ).arg( "NIF" ).arg( exception.lineNumber() ) );
-		return false;
+		errorStr.prepend( tr( "%1 XML parse error (line %2): " ).arg( "NIF" ).arg( line ) );
 	}
 };
 
@@ -641,15 +643,11 @@ QString NifModel::parseXmlDescription( const QString & filename )
 	if ( !f.exists() )
 		return tr( "nif.xml could not be found. Please install it and restart the application." );
 
-	if ( !f.open( QIODevice::ReadOnly | QIODevice::Text ) )
+	if ( !f.open( QIODevice::ReadOnly ) )
 		return tr( "Couldn't open NIF XML description file: %1" ).arg( filename );
 
 	NifXmlHandler handler;
-	QXmlSimpleReader reader;
-	reader.setContentHandler( &handler );
-	reader.setErrorHandler( &handler );
-	QXmlInputSource source( &f );
-	reader.parse( source );
+	parseXmlDocument( f, handler );
 
 	if ( !handler.errorString().isEmpty() ) {
 		compounds.clear();

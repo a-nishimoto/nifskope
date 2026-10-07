@@ -454,7 +454,7 @@ QList<TestMessage> TestThread::checkLinks( const NifModel * nif, const QModelInd
 	QList<TestMessage> messages;
 
 	for ( int r = 0; r < nif->rowCount( iParent ); r++ ) {
-		QModelIndex idx = iParent.child( r, 0 );
+		QModelIndex idx = childIndex( iParent, r, 0 );
 		bool child;
 
 		if ( nif->isLink( idx, &child ) ) {

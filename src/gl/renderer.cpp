@@ -638,7 +638,7 @@ bool Renderer::setupProgram( Program * prog, Shape * mesh, const PropertyList & 
 		if ( opts & Scene::DoErrorColor )
 			alt = magenta;
 
-		bool result = prog->uniSampler( bsprop, SAMP_BASE, 0, texunit, alt, clamp, forced );
+		prog->uniSampler( bsprop, SAMP_BASE, 0, texunit, alt, clamp, forced );
 	} else {
 		GLint uniBaseMap = prog->uniformLocations[SAMP_BASE];
 		if ( uniBaseMap >= 0 && (texprop || (bsprop && mesh->bslsp)) ) {
@@ -1292,12 +1292,8 @@ void Renderer::setupFixedFunction( Shape * mesh, const PropertyList & props )
 		texprop->bind( mesh->coords );
 	} else if ( BSShaderLightingProperty * texprop = props.get<BSShaderLightingProperty>() ) {
 		// standard multi texturing property
-		int stage = 0;
-
 		if ( texprop->bind( 0, mesh->coords ) ) {
-			//, mesh->coords, stage ) )
 			// base
-			stage++;
 			glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE );
 
 			glTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE );

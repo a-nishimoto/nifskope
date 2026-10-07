@@ -143,12 +143,11 @@ void NifSkope::initActions()
 	aSelectFont = ui->aSelectFont;
 
 	// Build all actions list
-	allActions = QSet<QAction *>::fromList( 
-		ui->tFile->actions() 
+	const QList<QAction *> actionList = ui->tFile->actions()
 		<< ui->mRender->actions()
 		<< ui->tRender->actions()
-		<< ui->tAnim->actions()
-	);
+		<< ui->tAnim->actions();
+	allActions = QSet<QAction *>( actionList.begin(), actionList.end() );
 
 	// Undo/Redo
 	undoAction = nif->undoStack->createUndoAction( this, tr( "&Undo" ) );
@@ -581,7 +580,7 @@ void NifSkope::initToolBars()
 	animGroups->setMinimumWidth( 60 );
 	animGroups->setSizeAdjustPolicy( QComboBox::AdjustToContents );
 	animGroups->setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Minimum );
-	connect( animGroups, static_cast<void (QComboBox::*)(const QString&)>(&QComboBox::activated), ogl, &GLView::setSceneSequence );
+	connect( animGroups, &QComboBox::textActivated, ogl, &GLView::setSceneSequence );
 
 	ui->tAnim->addWidget( animSlider );
 	animGroupsAction = ui->tAnim->addWidget( animGroups );
@@ -691,7 +690,7 @@ QWidget * NifSkope::filePathWidget( QWidget * parent )
 	filepathWidget->setVisible( false );
 
 	// Show Filepath on successful NIF load
-	connect( this, &NifSkope::completeLoading, [this, filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
+	connect( this, &NifSkope::completeLoading, [filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
 		filepathWidget->setVisible( success );
 		labelFilepath->setText( fname );
 
@@ -703,7 +702,7 @@ QWidget * NifSkope::filePathWidget( QWidget * parent )
 	} );
 
 	// Change Filepath on successful NIF save
-	connect( this, &NifSkope::completeSave, [this, filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
+	connect( this, &NifSkope::completeSave, [filepathWidget, labelFilepath, navigateToFilepath]( bool success, QString & fname ) {
 		filepathWidget->setVisible( success );
 		labelFilepath->setText( fname );
 
@@ -720,6 +719,8 @@ QWidget * NifSkope::filePathWidget( QWidget * parent )
 		QStringList args;
 		args << "/select," << QDir::toNativeSeparators( currentFile );
 		QProcess::startDetached( "explorer", args );
+#else
+		Q_UNUSED( this );
 #endif
 	} );
 
@@ -800,7 +801,7 @@ void NifSkope::onLoadComplete( bool success, QString & fname )
 
 		header->setRootIndex( nif->getHeader() );
 		// Refresh the header rows
-		header->updateConditions( nif->getHeader().child( 0, 0 ), nif->getHeader().child( 20, 0 ) );
+		header->updateConditions( childIndex( nif->getHeader(), 0, 0 ), childIndex( nif->getHeader(), 20, 0 ) );
 
 		ogl->setOrientation( GLView::ViewFront );
 
@@ -1001,13 +1002,13 @@ void NifSkope::setViewFont( const QFont & font )
 {
 	list->setFont( font );
 	QFontMetrics metrics( list->font() );
-	list->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	list->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	tree->setFont( font );
-	tree->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	tree->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	header->setFont( font );
-	header->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	header->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	kfmtree->setFont( font );
-	kfmtree->setIconSize( QSize( metrics.width( "000" ), metrics.lineSpacing() ) );
+	kfmtree->setIconSize( QSize( metrics.horizontalAdvance( "000" ), metrics.lineSpacing() ) );
 	ogl->setFont( font );
 }
 

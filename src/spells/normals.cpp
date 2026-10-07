@@ -85,7 +85,7 @@ public:
 				QVector<QVector<quint16> > strips;
 
 				for ( int r = 0; r < nif->rowCount( iPoints ); r++ )
-					strips.append( nif->getArray<quint16>( iPoints.child( r, 0 ) ) );
+					strips.append( nif->getArray<quint16>( childIndex( iPoints, r, 0 ) ) );
 
 				triangles = triangulate( strips );
 			} else {
@@ -116,7 +116,7 @@ public:
 				auto numParts = nif->get<int>( iPart, "Num Skin Partition Blocks" );
 				auto iParts = nif->getIndex( iPart, "Partition" );
 				for ( int i = 0; i < numParts; i++ )
-					triangles << nif->getArray<Triangle>( iParts.child( i, 0 ), "Triangles" );
+					triangles << nif->getArray<Triangle>( childIndex( iParts, i, 0 ), "Triangles" );
 			}
 
 			QVector<Vector3> verts;
@@ -317,7 +317,7 @@ public:
 	bool isApplicable( const NifModel * nif, const QModelIndex & index ) override final
 	{
 		return ( nif->getValue( index ).type() == NifValue::tVector3 )
-		       || ( nif->isArray( index ) && nif->getValue( index.child( 0, 0 ) ).type() == NifValue::tVector3 );
+		       || ( nif->isArray( index ) && nif->getValue( childIndex( index, 0, 0 ) ).type() == NifValue::tVector3 );
 	}
 
 	QModelIndex cast( NifModel * nif, const QModelIndex & index ) override final

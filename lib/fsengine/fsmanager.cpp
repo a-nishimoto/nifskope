@@ -90,7 +90,7 @@ void FSManager::initialize()
 	QSettings cfg;
 	QStringList list = cfg.value( "Settings/Resources/Archives", QStringList() ).toStringList();
 
-	for ( const QString an : list ) {
+	for ( const QString & an : list ) {
 		if ( auto a = FSArchiveHandler::openArchive( an ) )
 			archives.insert( an, a );
 	}
@@ -114,6 +114,9 @@ QStringList FSManager::regPathBSAList( QString regKey, QString dataDir )
 			list << QDir::fromNativeSeparators(dataPath + QDir::separator() + fn);
 		}
 	}
+#else
+	Q_UNUSED( regKey );
+	Q_UNUSED( dataDir );
 #endif
 	return list;
 }

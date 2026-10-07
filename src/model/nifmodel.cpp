@@ -414,7 +414,7 @@ void NifModel::updateHeader()
 
 			if ( nstrings > 0 && iArray.isValid() ) {
 				for ( int row = 0; row < nstrings; ++row ) {
-					int len = get<QString>( iArray.child( row, 0 ) ).length();
+					int len = get<QString>( childIndex( iArray, row, 0 ) ).length();
 
 					if ( len > maxlen )
 						maxlen = len;
@@ -1084,7 +1084,7 @@ void NifModel::insertType( NifItem * parent, const NifData & data, int at )
 	setState( Inserting );
 
 	if ( data.isArray() ) {
-		NifItem * item = insertBranch( parent, data, at );
+		insertBranch( parent, data, at );
 	} else if ( data.isCompound() ) {
 		NifBlockPtr compound = compounds.value( data.type() );
 		if ( !compound )
@@ -1484,7 +1484,7 @@ QVariant NifModel::data( const QModelIndex & idx, int role ) const
 			}
 		}
 		return QVariant();
-	case Qt::BackgroundColorRole:
+	case Qt::BackgroundRole:
 		{
 			// "notify" about an invalid index in "Triangles"
 			// TODO: checkbox, "show invalid only"
@@ -1584,6 +1584,7 @@ bool NifModel::setData( const QModelIndex & index, const QVariant & value, int r
 		break;
 	case NifModel::VerCondCol:
 		item->setVerCond( value.toString() );
+		break;
 	default:
 		return false;
 	}
@@ -2577,7 +2578,7 @@ void NifModel::updateLinks( int block, NifItem * parent )
 void NifModel::checkLinks( int block, QStack<int> & parents )
 {
 	parents.push( block );
-	foreach ( const auto child, childLinks.value( block ) ) {
+	for ( const auto child : childLinks.value( block ) ) {
 		if ( parents.contains( child ) ) {
 			auto m = tr( "infinite recursive link construct detected %1 -> %2" ).arg( block ).arg( child );
 			if ( msgMode == UserMessage ) {
@@ -2811,7 +2812,6 @@ QString NifModel::string( const QModelIndex & index, bool extraInfo ) const
 		return BaseModel::get<QString>( index );
 
 	if ( getVersionNumber() >= 0x14010003 ) {
-		QModelIndex iIndex;
 		int idx = -1;
 
 		if ( v.type() == NifValue::tStringIndex )
@@ -2885,7 +2885,9 @@ bool NifModel::assignString( NifItem * item, const QString & string, bool replac
 				pItem = item;
 				idx = -1;
 				break;
-			} // fall through
+			}
+
+			Q_FALLTHROUGH();
 		default:
 			return BaseModel::set<QString>( item, string );
 		}
@@ -2906,7 +2908,7 @@ bool NifModel::assignString( NifItem * item, const QString & string, bool replac
 
 		// Simply replace the string
 		if ( replace && idx >= 0 && idx < nstrings ) {
-			return BaseModel::set<QString>( iArray.child( idx, 0 ), string );
+			return BaseModel::set<QString>( childIndex( iArray, idx, 0 ), string );
 		}
 
 		QVector<QString> stringVector = getArray<QString>( iArray );
@@ -2921,7 +2923,7 @@ bool NifModel::assignString( NifItem * item, const QString & string, bool replac
 		// Append string to end of list
 		set<uint>( header, "Num Strings", nstrings + 1 );
 		updateArray( header, "Strings" );
-		BaseModel::set<QString>( iArray.child( nstrings, 0 ), string );
+		BaseModel::set<QString>( childIndex( iArray, nstrings, 0 ), string );
 
 		v.changeType( NifValue::tStringIndex );
 		return set<int>( pItem, nstrings );
