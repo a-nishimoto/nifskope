@@ -98,7 +98,7 @@ cmake -S nifskope -B build-tests -DCMAKE_PREFIX_PATH=/path/to/Qt -DNIFSKOPE_BUIL
 
 `find_package(QT NAMES Qt6 Qt5)` takes the first Qt that `CMAKE_PREFIX_PATH` leads to. When Qt 5 and Qt 6 are installed
 in one prefix (Debian and Ubuntu: `/usr`), Qt 6 wins there: choose Qt 5 with `-DQT_DIR=<prefix>/lib/cmake/Qt5`. NifSkope
-does not build with Qt 6 yet (`QGLWidget`, the SAX XML reader, `QRegExp` and others), so configuring against it stops
+does not build with Qt 6 yet (`QGLWidget`, `QRegExp` and others), so configuring against it stops
 with a message; `-DNIFSKOPE_ALLOW_QT6=ON` continues for people who work on the port.
 
 ## Install

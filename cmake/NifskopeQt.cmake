@@ -12,15 +12,15 @@ if(QT_VERSION_MAJOR EQUAL 6)
 	if(NOT NIFSKOPE_ALLOW_QT6)
 		message(FATAL_ERROR
 			"Found Qt ${QT_VERSION} in ${QT_DIR}, but NifSkope is not ported to Qt 6 yet.\n"
-			"Blockers: QGLWidget/QGLFormat (src/glview.*, src/ui/widgets/uvedit.*), QXmlSimpleReader SAX parsing "
-			"(src/xml/nifxml.cpp, kfmxml.cpp), QRegExp, QDomDocument, QMetaType::registerComparators.\n"
+			"Blockers: QGLWidget/QGLFormat (src/glview.*, src/ui/widgets/uvedit.*), QRegExp, QDomDocument, "
+			"QMetaType::registerComparators.\n"
 			"Use Qt 5.15: put its prefix first in -DCMAKE_PREFIX_PATH=<Qt 5.15 prefix>, or, when Qt 5 and Qt 6 are installed "
 			"in one prefix (such as /usr), choose it with -DQT_DIR=<prefix>/lib/cmake/Qt5.\n"
 			"To work on the port anyway: -DNIFSKOPE_ALLOW_QT6=ON.")
 	endif()
 	message(WARNING "Qt 6 support is a work in progress: the sources do not compile against it yet")
-	set(NIFSKOPE_QT_CORE_COMPONENTS Core Gui Widgets Xml Core5Compat)
-	set(NIFSKOPE_QT_APP_COMPONENTS OpenGL OpenGLWidgets Network)
+	set(NIFSKOPE_QT_CORE_COMPONENTS Core Gui Widgets Core5Compat)
+	set(NIFSKOPE_QT_APP_COMPONENTS Xml OpenGL OpenGLWidgets Network)
 	set(_nifskope_cxx_standard_default 17)
 	set(_nifskope_deprecated_before_default 0x060000)
 else()
@@ -29,8 +29,8 @@ else()
 			"Found Qt ${QT_VERSION} in ${QT_DIR}, but NifSkope needs Qt 5.15 or later (CI builds with 5.15.2).\n"
 			"Put a Qt 5.15 installation first in -DCMAKE_PREFIX_PATH=<Qt 5.15 prefix>.")
 	endif()
-	set(NIFSKOPE_QT_CORE_COMPONENTS Core Gui Widgets Xml)
-	set(NIFSKOPE_QT_APP_COMPONENTS OpenGL Network)
+	set(NIFSKOPE_QT_CORE_COMPONENTS Core Gui Widgets)
+	set(NIFSKOPE_QT_APP_COMPONENTS Xml OpenGL Network)
 	set(_nifskope_cxx_standard_default 20)
 	set(_nifskope_deprecated_before_default 0x050300)
 endif()

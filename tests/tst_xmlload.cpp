@@ -5,8 +5,10 @@
 #include "model/kfmmodel.h"
 #include "model/nifmodel.h"
 
+#include <QCryptographicHash>
 #include <QFile>
 #include <QRegularExpression>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QTemporaryFile>
 #include <QTest>
@@ -928,6 +930,155 @@ private slots:
 		QVERIFY( !NifModel::isCompound( "B" ) );
 		QVERIFY( !NifModel::isNiBlock( "BlockB" ) );
 		QVERIFY( !NifModel::isVersionSupported( NifModel::version2number( "3.3.0.13" ) ) );
+	}
+
+	// ---- what the XML rules say, and what the old SAX reader let through
+
+	//! Documents that are not well-formed XML, which QXmlSimpleReader accepted because it checked less. The line is the
+	//! one the reader stopped at; a negative line accepts any. (Not here: a second DOCTYPE, which QXmlStreamReader
+	//! refuses only from Qt 5.15.15 on, and a byte above 0x7f in a document declared US-ASCII, which depends on the
+	//! text codec)
+	void notWellFormed_data()
+	{
+		QTest::addColumn<QByteArray>( "xml" );
+		QTest::addColumn<int>( "line" );
+
+		QTest::newRow( "attribute given twice" )
+			<< schemaDoc( { "<compound name='A'>", "<add name='a' name='b' type='int'/>", "</compound>" } ) << 5;
+		QTest::newRow( "entity that is not declared" )
+			<< schemaDoc( { "<compound name='A'>", "<add name='a' type='int'>text &undeclared; text</add>", "</compound>" } ) << 5;
+		QTest::newRow( "entity that is not declared, no DOCTYPE" )
+			<< QByteArray( "<niftoolsxml>\n<compound name='A'>&undeclared;</compound>\n</niftoolsxml>\n" ) << 2;
+		QTest::newRow( "character reference beyond Unicode" )
+			<< schemaDoc( { "<compound name='A'>", "<add name='a' type='int'>&#x110000;</add>", "</compound>" } ) << 5;
+		QTest::newRow( "character reference to NUL" )
+			<< schemaDoc( { "<compound name='A'>", "<add name='a' type='int'>&#0;</add>", "</compound>" } ) << 5;
+		QTest::newRow( "XML version that does not exist" ) << QByteArray( "<?xml version=\"9.9\"?>\n<niftoolsxml/>\n" ) << 1;
+		QTest::newRow( "NUL in text" )
+			<< QByteArray( "<niftoolsxml>\n<compound name='A'>nul " ) + QByteArray( 1, '\0' ) + QByteArray( " byte</compound>\n</niftoolsxml>\n" ) << 2;
+		QTest::newRow( "control characters in text" )
+			<< QByteArray( "<niftoolsxml>\n<compound name='A'>ctl \x01\x08\x0b\x1f end</compound>\n</niftoolsxml>\n" ) << 2;
+		QTest::newRow( "byte that is not UTF-8" ) << QByteArray( "<niftoolsxml>\n<compound name='A'>\xff</compound>\n</niftoolsxml>\n" ) << -1;
+		QTest::newRow( "encoding that is not known" )
+			<< QByteArray( "<?xml version='1.0' encoding='no-such-encoding'?>\n<niftoolsxml/>\n" ) << -1;
+		QTest::newRow( "colons in an attribute name" )
+			<< schemaDoc( { "<compound name='A' a:b:c='1'/>" } ) << 4;
+	}
+
+	void notWellFormed()
+	{
+		QFETCH( QByteArray, xml );
+		QFETCH( int, line );
+
+		verifyError( loadNif( xml ), "NIF", line, "Syntax error" );
+		verifyError( loadKfm( xml ), "KFM", line, "Syntax error" );
+	}
+
+	//! A CR LF or a CR is a line end, and is read as the LF the same document would have: the text of a description
+	//! and an attribute value never has a CR. A line end inside an attribute value is a blank
+	void lineEndsAreNormalized()
+	{
+		const QList<const char *> lines = {
+			"<version num='20.0.0.5'/>",
+			"<compound name='Described'>",
+			"first line",
+			"second line",
+			"<add name='a' type='int'/>",
+			"</compound>",
+			"<niobject name='Row'>",
+			"<add name='text' type='int' arg='line one",
+			"line two\tand a tab'>",
+			"    one",
+			"    two",
+			"</add>",
+			"<add name='references' type='int' arg='a&#10;b&#9;c&#13;d'/>",
+			"</niobject>",
+		};
+		QByteArray lf;
+		for ( const char * line : lines )
+			lf += QByteArray( line ) + '\n';
+		lf = "<?xml version=\"1.0\"?>\n<niftoolsxml>\n" + lf + "</niftoolsxml>\n";
+
+		QByteArray crlf = lf, cr = lf;
+		crlf.replace( '\n', "\r\n" );
+		cr.replace( '\n', '\r' );
+
+		QString err = loadNif( lf );
+		QVERIFY2( err.isEmpty(), qPrintable( err ) );
+
+		NifModel nif;
+		QModelIndex row = nif.insertNiBlock( "Row" );
+		QVERIFY( row.isValid() );
+		const QString expectedRows = describeRows( nif, row );
+		const QString expectedDescription = NifValue::typeDescription( "Described" );
+		QCOMPARE( expectedDescription, QString( "<p><b>Described</b></p><p>first line<br/>second line</p>" ) );
+		compareRows( expectedRows, QString(
+			"text: int arg={line one line two and a tab} text={one\\n    two} value={0}\n"
+			"references: int arg={a\\nb\\tc\\rd} value={0}\n"
+		) );
+
+		for ( const QByteArray & xml : { crlf, cr } ) {
+			err = loadNif( xml );
+			QVERIFY2( err.isEmpty(), qPrintable( err ) );
+
+			NifModel other;
+			row = other.insertNiBlock( "Row" );
+			QVERIFY( row.isValid() );
+			compareRows( describeRows( other, row ), expectedRows );
+			QCOMPARE( NifValue::typeDescription( "Described" ), expectedDescription );
+		}
+	}
+
+	//! A fingerprint of what NifModel makes of every block of nif.xml: all rows with their attributes and texts, and
+	//! the description of every type they use
+	static QByteArray blockFingerprint()
+	{
+		NifModel nif;
+		QCryptographicHash hash( QCryptographicHash::Sha1 );
+		QSet<QString> types;
+
+		QStringList names = NifModel::allNiBlocks();
+		names.sort();
+		for ( const QString & name : names ) {
+			QModelIndex block = nif.insertNiBlock( name );
+			hash.addData( describeRows( nif, block ).toUtf8() );
+
+			QList<QModelIndex> todo = { block };
+			while ( !todo.isEmpty() ) {
+				QModelIndex parent = todo.takeLast();
+				for ( int r = 0; r < nif.rowCount( parent ); r++ ) {
+					QModelIndex i = nif.index( r, 0, parent );
+					types.insert( nif.itemType( i ) );
+					todo.append( i );
+				}
+			}
+		}
+
+		QStringList sorted = types.values();
+		sorted.sort();
+		for ( const QString & type : sorted )
+			hash.addData( NifValue::typeDescription( type ).toUtf8() );
+
+		return hash.result().toHex();
+	}
+
+	//! nif.xml checked out with CR LF line ends (git's autocrlf on Windows) makes the same tables as with LF
+	void nif_realFileWithCrLf()
+	{
+		QFile f( TestEnv::nifXmlPath() );
+		QVERIFY( f.open( QIODevice::ReadOnly ) );
+		const QByteArray lf = f.readAll();
+		QVERIFY( !lf.contains( '\r' ) );
+		QByteArray crlf = lf;
+		crlf.replace( '\n', "\r\n" );
+
+		QString err = loadNif( lf );
+		QVERIFY2( err.isEmpty(), qPrintable( err ) );
+		const QByteArray expected = blockFingerprint();
+
+		err = loadNif( crlf );
+		QVERIFY2( err.isEmpty(), qPrintable( err ) );
+		QCOMPARE( blockFingerprint(), expected );
 	}
 
 	// ---- kfm.xml

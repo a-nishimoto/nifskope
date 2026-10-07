@@ -13,7 +13,7 @@
 TEMPLATE = app
 TARGET   = nifskope_tests
 
-QT += xml widgets testlib
+QT += widgets testlib
 
 CONFIG += testcase console no_testcase_installs
 CONFIG -= app_bundle
@@ -72,6 +72,7 @@ HEADERS += \
 	$${NIFSKOPE_ROOT}/src/model/kfmmodel.h \
 	$${NIFSKOPE_ROOT}/src/model/nifmodel.h \
 	$${NIFSKOPE_ROOT}/src/xml/nifexpr.h \
+	$${NIFSKOPE_ROOT}/src/xml/xmlstream.h \
 	$${NIFSKOPE_ROOT}/src/message.h \
 	$${NIFSKOPE_ROOT}/src/spellbook.h \
 	$${NIFSKOPE_ROOT}/src/ui/checkablemessagebox.h \

@@ -5,6 +5,7 @@
 TEMPLATE = app
 TARGET   = NifSkope
 
+# xml is for the COLLADA export (QDomDocument in lib/importex/col.cpp): the nif.xml and kfm.xml parsers use QXmlStreamReader (QtCore)
 QT += xml opengl network widgets
 
 # Minimum Qt version (5.15), C++ standard and Qt deprecation level
@@ -190,6 +191,7 @@ HEADERS += \
 	src/ui/settingsdialog.h \
 	src/ui/settingspane.h \
 	src/xml/nifexpr.h \
+	src/xml/xmlstream.h \
 	src/glview.h \
 	src/message.h \
 	src/nifskope.h \

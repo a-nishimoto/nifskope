@@ -33,6 +33,7 @@ add_library(nifskope_core STATIC
 	model/kfmmodel.h
 	model/nifmodel.h
 	xml/nifexpr.h
+	xml/xmlstream.h
 	message.h
 	spellbook.h
 	ui/checkablemessagebox.h
