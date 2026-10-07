@@ -482,6 +482,7 @@ public:
 		case tagEnum:
 		case tagBitFlag:
 			NifValue::setTypeDescription( typId, typTxt );
+			Q_FALLTHROUGH();
 		default:
 			break;
 		}

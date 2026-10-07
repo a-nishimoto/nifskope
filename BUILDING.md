@@ -78,9 +78,11 @@ the CMake build writes its `README.txt` into `<build>/generated`.
 | `NIFSKOPE_QT_DEPRECATED_BEFORE` | `0x051500` | Value of `QT_DISABLE_DEPRECATED_BEFORE`: Qt API deprecated before this hexadecimal Qt version no longer compiles. The default is the minimum Qt, so the sources use nothing that Qt 5.15 deprecated; `0x050300` (Qt 5.3) declares the deprecated API again (qmake: `NIFSKOPE_QT_DEPRECATED_BEFORE=0x050300`) |
 | `NIFSKOPE_WERROR_DEPRECATED` | OFF | Make the use of a deprecated declaration an error in NifSkope's own code: `-Werror=deprecated-declarations` (`/we4996` with MSVC), for NifSkope's own targets only, not for the vendored libraries that are targets of their own (zlib, lz4, NvTriStrip). The `ci-*` presets turn it on, so a deprecated call stops the CI build; a newer compiler or C++ library deprecates more than the ones CI uses, which is why the default is OFF. There is no qmake counterpart: qmake compiles the vendored sources with the same flags |
 
-NifSkope's own code is compiled with `-Wall -Wextra` (MSVC: `/W3`, plus C4100 and C4189 at that level) and builds
-without warnings with Apple clang 21, so a new warning is a mistake in the change that adds it. The vendored libraries are
-built without warning options: theirs are not NifSkope's to fix.
+NifSkope's own code is compiled with `-Wall -Wextra` (clang also with `-Wimplicit-fallthrough`, which GCC's `-Wextra`
+includes and clang's does not; MSVC: `/W3`, plus C4100 and C4189 at that level) and builds without warnings with Apple
+clang 21, so a new warning is a mistake in the change that adds it. A `case` that falls through on purpose says so with
+`Q_FALLTHROUGH();` (a "fall through" comment satisfies GCC but not clang). The vendored libraries are built without
+warning options: theirs are not NifSkope's to fix.
 
 With MSVC, NifSkope's own targets (and `NifSkope.pro` and `tests/tests.pro`) define
 `_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING`: in Qt 5.15.2 to 5.15.16, `QVector`, `QList` and `QVarLengthArray` pass

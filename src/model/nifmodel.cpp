@@ -2884,7 +2884,9 @@ bool NifModel::assignString( NifItem * item, const QString & string, bool replac
 				pItem = item;
 				idx = -1;
 				break;
-			} // fall through
+			}
+
+			Q_FALLTHROUGH();
 		default:
 			return BaseModel::set<QString>( item, string );
 		}

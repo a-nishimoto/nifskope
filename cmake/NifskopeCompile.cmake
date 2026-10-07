@@ -3,10 +3,10 @@
 #
 #   nifskope_compile_options  definitions and flags that change the code (PUBLIC on nifskope_core, so the
 #                             application and the tests are compiled the same way)
-#   nifskope_warnings         -Wall -Wextra, linked PRIVATE by first-party targets only. Vendored libraries
-#                             never get it: they are quiet without it and their warnings are not ours to fix.
-#                             With NIFSKOPE_WERROR_DEPRECATED a deprecated declaration is an error as well,
-#                             in first-party code only for the same reason
+#   nifskope_warnings         -Wall -Wextra (and -Wimplicit-fallthrough with clang), linked PRIVATE by
+#                             first-party targets only. Vendored libraries never get it: they are quiet without
+#                             it and their warnings are not ours to fix. With NIFSKOPE_WERROR_DEPRECATED a
+#                             deprecated declaration is an error as well, in first-party code only for the same reason
 
 # NIFSKOPE_CXX_STANDARD (cmake/NifskopeQt.cmake) is the C++ standard; qmake: CONFIG += c++1z and c++2a for 17 and 20
 # (NifSkope_settings.pri). GNU extensions stay on (CMAKE_CXX_EXTENSIONS defaults to ON).
@@ -110,9 +110,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SIZEOF_VOID_P EQUAL 4
 	target_compile_options(nifskope_compile_options INTERFACE -msse2 -mfpmath=sse)
 endif()
 
+# -Wextra includes -Wimplicit-fallthrough in GCC (level 3, which also accepts a "fall through" comment) but not in
+# clang, so clang gets it by name; it only accepts the attribute, Q_FALLTHROUGH(). MSVC has no such warning
 add_library(nifskope_warnings INTERFACE)
 target_compile_options(nifskope_warnings INTERFACE
 	"$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra>"
+	"$<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wimplicit-fallthrough>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/W3;/w34100;/w34189;/w44996>")
 
 # A call of a deprecated function is an error, not a warning, so that the Qt 5 -> Qt 6 work does not slip back. Qt API

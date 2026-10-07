@@ -42,3 +42,8 @@ isEmpty(NIFSKOPE_QT_DEPRECATED_BEFORE): NIFSKOPE_QT_DEPRECATED_BEFORE = 0x051500
 !contains(NIFSKOPE_QT_DEPRECATED_BEFORE, ^0[xX][0-9a-fA-F]+$) {
 	error("NIFSKOPE_QT_DEPRECATED_BEFORE is $${NIFSKOPE_QT_DEPRECATED_BEFORE}: use a hexadecimal Qt version such as 0x051500")
 }
+
+# Warnings: the mkspec's warn_on adds -Wall -Wextra for GCC and clang. -Wextra includes -Wimplicit-fallthrough in GCC but
+# not in clang, which gets it here (cmake/NifskopeCompile.cmake does the same). Intentional fall-through is marked with
+# Q_FALLTHROUGH();
+clang: QMAKE_CXXFLAGS += -Wimplicit-fallthrough
