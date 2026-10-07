@@ -4,7 +4,7 @@
 # Included by NifSkope.pro and tests/tests.pro, so that both compile the shared sources the same way. The CMake build
 # has the same two switches under the same names (cmake/NifskopeQt.cmake). Set them on the qmake command line
 #
-#	qmake NIFSKOPE_CXX_STANDARD=17 NIFSKOPE_QT_DEPRECATED_BEFORE=0x051500 /path/to/NifSkope.pro
+#	qmake NIFSKOPE_CXX_STANDARD=17 NIFSKOPE_QT_DEPRECATED_BEFORE=0x050300 /path/to/NifSkope.pro
 #
 # in a fresh build directory: an existing one keeps the objects it compiled with the old values.
 
@@ -37,8 +37,9 @@ equals(NIFSKOPE_CXX_STANDARD, 20) {
 }
 
 # QT_DISABLE_DEPRECATED_BEFORE: Qt API deprecated before this version is not declared. A hexadecimal Qt version,
-# 0x050300 is Qt 5.3 and 0x051500 is Qt 5.15
-isEmpty(NIFSKOPE_QT_DEPRECATED_BEFORE): NIFSKOPE_QT_DEPRECATED_BEFORE = 0x050300
+# 0x050300 is Qt 5.3 and 0x051500 is Qt 5.15. The default is the minimum Qt: the sources use no API that Qt 5.15
+# deprecated, and the build stops at the first one that comes back
+isEmpty(NIFSKOPE_QT_DEPRECATED_BEFORE): NIFSKOPE_QT_DEPRECATED_BEFORE = 0x051500
 !contains(NIFSKOPE_QT_DEPRECATED_BEFORE, ^0[xX][0-9a-fA-F]+$) {
 	error("NIFSKOPE_QT_DEPRECATED_BEFORE is $${NIFSKOPE_QT_DEPRECATED_BEFORE}: use a hexadecimal Qt version such as 0x051500")
 }

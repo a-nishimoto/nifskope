@@ -32,18 +32,21 @@ else()
 	set(NIFSKOPE_QT_CORE_COMPONENTS Core Gui Widgets)
 	set(NIFSKOPE_QT_APP_COMPONENTS Xml OpenGL Network)
 	set(_nifskope_cxx_standard_default 20)
-	set(_nifskope_deprecated_before_default 0x050300)
+	set(_nifskope_deprecated_before_default 0x051500)
 endif()
 
 # The language standard and the Qt deprecation level are build switches: -D<name>=<value> on the command line or in a
 # preset (cacheVariables) changes them. The default depends on the Qt major, so they are not option()s with one fixed
 # value; set(... CACHE) leaves a value that is already in the cache alone. qmake: NIFSKOPE_CXX_STANDARD and
-# NIFSKOPE_QT_DEPRECATED_BEFORE, same names (NifSkope_settings.pri)
+# NIFSKOPE_QT_DEPRECATED_BEFORE, same names (NifSkope_settings.pri).
+# The deprecation level is the minimum Qt, 5.15: the sources use no API that Qt 5.15 deprecated, and the build stops
+# at the first one that comes back. A lower value (0x050300 was the default until Qt 5.15 became the minimum) declares
+# the deprecated API again; NIFSKOPE_WERROR_DEPRECATED (CMakeLists.txt) is the other half of the check
 set(NIFSKOPE_CXX_STANDARD ${_nifskope_cxx_standard_default} CACHE STRING
 	"C++ standard NifSkope's own code is compiled as: 14, 17 or 20")
 set_property(CACHE NIFSKOPE_CXX_STANDARD PROPERTY STRINGS 14 17 20)
 set(NIFSKOPE_QT_DEPRECATED_BEFORE ${_nifskope_deprecated_before_default} CACHE STRING
-	"QT_DISABLE_DEPRECATED_BEFORE: Qt API deprecated before this hexadecimal Qt version is not declared (0x050300 is Qt 5.3)")
+	"QT_DISABLE_DEPRECATED_BEFORE: Qt API deprecated before this hexadecimal Qt version is not declared (0x051500 is Qt 5.15)")
 unset(_nifskope_cxx_standard_default)
 unset(_nifskope_deprecated_before_default)
 if(NOT NIFSKOPE_CXX_STANDARD MATCHES "^(14|17|20)$")

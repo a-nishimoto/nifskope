@@ -27,6 +27,7 @@ option(NIFSKOPE_USE_SYSTEM_GLI   "Use a system or vcpkg gli + glm instead of lib
 option(NIFSKOPE_USE_GL_QPAINTER  "Define USE_GL_QPAINTER: paint the text statistics overlay with QPainter" OFF)
 option(NIFSKOPE_ALLOW_QT6        "Continue with Qt 6 although the sources are not ported to it yet (porting work only)" OFF)
 option(NIFSKOPE_KEEP_NDEBUG      "Keep -DNDEBUG in the Release flags (qmake never defines it, so assert() stays live unless this is ON)" OFF)
+option(NIFSKOPE_WERROR_DEPRECATED "Make the use of a deprecated declaration an error in NifSkope's own code (-Werror=deprecated-declarations, /we4996); the ci-* presets turn it on" OFF)
 cmake_dependent_option(NIFSKOPE_DEPLOY_QT "Run windeployqt/macdeployqt during cmake --install" ON "WIN32 OR APPLE" OFF)
 cmake_dependent_option(NIFSKOPE_LINUX_FHS_LAYOUT "Install to bin/ and share/nifskope/ instead of a self-contained lib/nifskope/" OFF "UNIX;NOT APPLE" OFF)
 set(NIFSKOPE_REVISION_OVERRIDE "" CACHE STRING "Revision shown in the About box. Empty: first 7 digits of git HEAD, or none outside a git checkout")

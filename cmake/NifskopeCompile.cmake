@@ -5,6 +5,8 @@
 #                             application and the tests are compiled the same way)
 #   nifskope_warnings         -Wall -Wextra, linked PRIVATE by first-party targets only. Vendored libraries
 #                             never get it: they are quiet without it and their warnings are not ours to fix.
+#                             With NIFSKOPE_WERROR_DEPRECATED a deprecated declaration is an error as well,
+#                             in first-party code only for the same reason
 
 # NIFSKOPE_CXX_STANDARD (cmake/NifskopeQt.cmake) is the C++ standard; qmake: CONFIG += c++14 -> -std=gnu++1y, c++1z and
 # c++2a for 17 and 20 (NifSkope_settings.pri). GNU extensions stay on (CMAKE_CXX_EXTENSIONS defaults to ON).
@@ -102,3 +104,16 @@ add_library(nifskope_warnings INTERFACE)
 target_compile_options(nifskope_warnings INTERFACE
 	"$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/W3;/w34100;/w34189;/w44996>")
+
+# A call of a deprecated function is an error, not a warning, so that the Qt 5 -> Qt 6 work does not slip back. Qt API
+# deprecated up to 5.15 is not declared at all (QT_DISABLE_DEPRECATED_BEFORE above); this is what stays: other
+# [[deprecated]] declarations and the library and system ones (the C++ library, the CRT, the OS). Off by default, because
+# a newer compiler or C++ library deprecates more, and a build that does not get that far should not stop for it; the
+# ci-* presets of CMakePresets.json turn it on. MSVC: /w44996 above moves C4996, the warning for deprecated
+# declarations, to level 4, which /W3 does not show; /w34996 puts it back at level 3 and /we4996 makes it an error, so
+# that the result does not depend on whether /we overrides a warning level
+if(NIFSKOPE_WERROR_DEPRECATED)
+	target_compile_options(nifskope_warnings INTERFACE
+		"$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Werror=deprecated-declarations>"
+		"$<$<CXX_COMPILER_ID:MSVC>:/w34996;/we4996>")
+endif()
